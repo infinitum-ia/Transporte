@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: transformas_redis_prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - transformas_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: transformas-app:latest
+    container_name: transformas_app_prod
+    restart: unless-stopped
+    ports:
+      - "8081:8000"  # External port 8081 -> Internal port 8000
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - ENVIRONMENT=production
+      - DEBUG=false
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      # Mount Excel/CSV file for outbound calls
+      - ./datos_llamadas_salientes.csv:/app/data/datos_llamadas_salientes.csv:rw
+      # Mount backups folder
+      - ./excel_backups:/app/data/backups:rw
+      # Optional: mount logs folder
+      - ./logs:/app/logs:rw
+    command: uvicorn src.presentation.api.main:app --host 0.0.0.0 --port 8000 --workers 2 --log-level info
+    networks:
+      - transformas_network
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import requests; requests.get('http://localhost:8000/api/v1/health', timeout=5)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  transformas_network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
