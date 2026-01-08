@@ -1,7 +1,4 @@
-"""
-Edge routing functions for the LangGraph conversation graph.
+# Edge routing functions
+from src.agent.graph.edges.routing import should_escalate, route_after_llm, should_continue
 
-These functions determine which node to execute next based on the current state.
-"""
-
-__all__ = []
+__all__ = ['should_escalate', 'route_after_llm', 'should_continue']

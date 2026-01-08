@@ -4,11 +4,13 @@ from typing import Dict, Any
 def eligibility_checker(state: Dict[str, Any]) -> Dict[str, Any]:
     """Check if patient/service is eligible"""
     issues = []
-    
+
     # Check EPS
-    eps = state.get('eps', '').lower()
-    if eps and eps != 'cosalud':
-        issues.append(f'EPS {eps} no valida, solo Cosalud')
+    eps = state.get('eps')
+    if eps:
+        eps = eps.lower()
+        if eps != 'cosalud':
+            issues.append(f'EPS {eps} no valida, solo Cosalud')
     
     # Check appointment dates
     dates = state.get('appointment_dates', [])
