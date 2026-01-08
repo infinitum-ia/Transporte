@@ -5,6 +5,7 @@ System prompts for inbound calls (customer calls us) following requisitos.md spe
 This implements the proper flow for incoming customer service calls.
 """
 from src.domain.value_objects.conversation_phase import ConversationPhase
+from src.shared.utils.time_utils import get_greeting, get_farewell
 
 
 def build_inbound_system_prompt(
@@ -35,6 +36,10 @@ def build_inbound_system_prompt(
     Returns:
         System prompt string
     """
+
+    # Calculate time-based greetings
+    greeting = get_greeting()
+    farewell = get_farewell()
 
     base_rules = f"""
 Eres {agent_name}, agente de servicio al cliente de {company_name}, empresa autorizada por EPS {eps_name}.
@@ -115,10 +120,10 @@ Fases válidas: {", ".join([p.value for p in ConversationPhase])}
 🟢 FASE: GREETING (Bienvenida)
 
 SCRIPT OBLIGATORIO (requisitos.md línea 3-4):
-"Buenos días/tardes, gracias por comunicarse con nosotros. Mi nombre es {agent_name}. ¿En qué le puedo servir/ayudar el día de hoy?"
+"{greeting}, gracias por comunicarse con nosotros. Mi nombre es {agent_name}. ¿En qué le puedo servir/ayudar el día de hoy?"
 
 IMPORTANTE:
-- Saluda según la hora del día (buenos días antes de 12pm, buenas tardes después)
+- Usa el saludo apropiado según la hora: {greeting}
 - Sé cálida y acogedora
 - Pregunta abiertamente en qué puedes ayudar
 - NO preguntes datos todavía, solo escucha qué necesita
@@ -414,21 +419,21 @@ OBJETIVO (requisitos.md línea 18):
 Finalizar la atención de forma profesional y cordial.
 
 SCRIPT OBLIGATORIO (requisitos.md línea 18):
-"Gracias por su tiempo, Sr./Sra. [nombre o apellido]. Recuerde que habló con {agent_name} de {company_name}. Que tenga un excelente día/tarde."
+"Gracias por su tiempo, Sr./Sra. [nombre o apellido]. Recuerde que habló con {agent_name} de {company_name}. {farewell}."
 
 REGLAS:
 - Usa el nombre o apellido del usuario (personaliza)
 - Recuerda tu nombre y empresa
-- Desea buen día/tarde según la hora
+- Despedida apropiada según hora: {farewell}
 - Sé cálida en la despedida
 - next_phase: END (no cambia, la conversación termina)
 
 EJEMPLOS:
 
-Respuesta: "Gracias por su tiempo, Sra. González. Recuerde que habló con {agent_name} de {company_name}. Que tenga un excelente día."
+Respuesta: "Gracias por su tiempo, Sra. González. Recuerde que habló con {agent_name} de {company_name}. {farewell}."
 next_phase: END
 
-Respuesta: "Muchas gracias por comunicarse con nosotros, Sr. Ramírez. Habló con {agent_name} de {company_name}. Que tenga una excelente tarde."
+Respuesta: "Muchas gracias por comunicarse con nosotros, Sr. Ramírez. Habló con {agent_name} de {company_name}. {farewell}."
 next_phase: END
 
 NOTA FINAL:

@@ -871,6 +871,33 @@ class CallOrchestrator:
                 state.setdefault("patient", {})["phone"] = patient_phone
                 await self._store.set(session_id, state)
 
+        # Check if this is a START message on existing session (should be ignored)
+        if not session_created and user_message.strip() in ["", "START", "[START]", "[INICIO]"]:
+            # For existing sessions, START messages should be ignored
+            # The session already has a greeting, no need to re-greet
+            state = await self._store.get(session_id)
+            if state and len(state.get("messages", [])) > 0:
+                # Return last agent message (don't process START)
+                messages = state.get("messages", [])
+                last_agent_message = None
+                for msg in reversed(messages):
+                    if msg.get("role") == "assistant":
+                        last_agent_message = msg.get("content", "")
+                        break
+
+                if last_agent_message:
+                    return {
+                        "session_id": session_id,
+                        "agent_response": last_agent_message,
+                        "conversation_phase": state.get("phase", ConversationPhase.GREETING.value),
+                        "call_direction": state.get("call_direction", CallDirection.INBOUND.value),
+                        "requires_escalation": False,
+                        "session_created": False,
+                        "patient_name": state.get("patient", {}).get("patient_full_name"),
+                        "service_type": state.get("service", {}).get("service_type"),
+                        "metadata": {"note": "START message ignored on existing session"}
+                    }
+
         # Process the message
         response = await self.process_message(session_id, user_message)
 
