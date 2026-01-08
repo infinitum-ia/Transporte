@@ -1,5 +1,6 @@
 # LangGraph Orchestrator - compatible with CallOrchestrator interface
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+import uuid
 from langchain_core.messages import HumanMessage, AIMessage
 from src.agent.graph.conversation_graph import create_conversation_graph
 from src.agent.graph.state_adapters import create_initial_state, state_to_dict
@@ -11,10 +12,18 @@ class LangGraphOrchestrator:
     Compatible interface with CallOrchestrator for easy migration.
     """
     
-    def __init__(self, settings=None):
-        """Initialize orchestrator with compiled graph"""
+    def __init__(self, settings=None, store=None, excel_service=None):
+        """Initialize orchestrator with compiled graph
+
+        Args:
+            settings: Application settings
+            store: RedisSessionStore for session persistence (optional)
+            excel_service: ExcelOutboundService for outbound calls (optional)
+        """
         self.graph = create_conversation_graph()
         self.settings = settings
+        self.store = store
+        self.excel_service = excel_service
         self._sessions = {}  # In-memory session storage for now
     
     async def process_message(
@@ -91,9 +100,8 @@ class LangGraphOrchestrator:
         excel_row_index: int = None
     ) -> str:
         """Create a new session"""
-        import uuid
         session_id = str(uuid.uuid4())
-        
+
         state = create_initial_state(
             session_id=session_id,
             call_direction=call_direction,
@@ -101,5 +109,66 @@ class LangGraphOrchestrator:
             excel_row_index=excel_row_index
         )
         self._sessions[session_id] = state
-        
+
         return session_id
+
+    async def process_unified_message(
+        self,
+        patient_phone: str,
+        user_message: str,
+        is_outbound: bool = False,
+        agent_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process message with automatic session management.
+
+        Compatible with CallOrchestrator.process_unified_message().
+
+        Args:
+            patient_phone: Patient phone number
+            user_message: User's message
+            is_outbound: True for outbound, False for inbound
+            agent_name: Agent name (optional)
+
+        Returns:
+            Dict with response, session info, and metadata
+        """
+        # For now, create a simple mapping of patient_phone to session_id
+        # In production, this would use Redis or the store
+        session_key = f"phone:{patient_phone}"
+
+        # Find or create session
+        session_id = None
+        session_created = False
+
+        # Simple in-memory phone-to-session mapping
+        if not hasattr(self, '_phone_to_session'):
+            self._phone_to_session = {}
+
+        if session_key in self._phone_to_session:
+            session_id = self._phone_to_session[session_key]
+        else:
+            # Create new session
+            session_id = self.create_session(
+                call_direction="OUTBOUND" if is_outbound else "INBOUND",
+                agent_name=agent_name or (self.settings.AGENT_NAME if self.settings else "María")
+            )
+            self._phone_to_session[session_key] = session_id
+            session_created = True
+
+        # Process the message
+        response = await self.process_message(
+            session_id=session_id,
+            user_message=user_message,
+            call_direction="OUTBOUND" if is_outbound else "INBOUND",
+            agent_name=agent_name or (self.settings.AGENT_NAME if self.settings else "María")
+        )
+
+        # Add session management info
+        response["session_created"] = session_created
+        response["conversation_phase"] = response.get("current_phase")
+        response["call_direction"] = "OUTBOUND" if is_outbound else "INBOUND"
+        response["requires_escalation"] = response.get("escalation_required", False)
+        response["metadata"] = {}
+
+        return response

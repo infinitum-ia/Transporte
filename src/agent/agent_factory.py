@@ -20,7 +20,7 @@ def create_agent(*, settings: Settings, store: RedisSessionStore | None = None, 
     return MockConversationalAgent(agent_name=settings.AGENT_NAME, company_name=settings.COMPANY_NAME)
 
 
-def create_orchestrator(settings: Settings) -> Any:
+def create_orchestrator(settings: Settings, store=None, excel_service=None) -> Any:
     """
     Create conversation orchestrator based on settings.
 
@@ -29,6 +29,8 @@ def create_orchestrator(settings: Settings) -> Any:
 
     Args:
         settings: Application settings
+        store: RedisSessionStore for session persistence (optional)
+        excel_service: ExcelOutboundService for outbound calls (optional)
 
     Returns:
         Orchestrator instance (LangGraphOrchestrator or CallOrchestrator)
@@ -37,7 +39,11 @@ def create_orchestrator(settings: Settings) -> Any:
         try:
             logger.info("Creating LangGraphOrchestrator")
             from src.agent.langgraph_orchestrator import LangGraphOrchestrator
-            return LangGraphOrchestrator(settings=settings)
+            return LangGraphOrchestrator(
+                settings=settings,
+                store=store,
+                excel_service=excel_service
+            )
         except Exception as e:
             logger.error(f"Failed to create LangGraphOrchestrator: {e}", exc_info=True)
             logger.warning("Falling back to legacy CallOrchestrator")
@@ -46,4 +52,8 @@ def create_orchestrator(settings: Settings) -> Any:
     # Create legacy orchestrator
     logger.info("Creating legacy CallOrchestrator")
     from src.agent.call_orchestrator import CallOrchestrator
-    return CallOrchestrator()
+    return CallOrchestrator(
+        settings=settings,
+        store=store,
+        excel_service=excel_service
+    )
