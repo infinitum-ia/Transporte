@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     EPS_NAME: str = "Cosalud"
     # Agent backend: "mock" (no LLM) or "llm" (OpenAI via LangChain)
     AGENT_MODE: str = "mock"
+    # Use LangGraph orchestrator (true) or legacy CallOrchestrator (false)
+    USE_LANGGRAPH: bool = False
     MAX_CONVERSATION_TURNS: int = 50
     SESSION_TTL_SECONDS: int = 3600
 
