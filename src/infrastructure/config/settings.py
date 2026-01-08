@@ -39,12 +39,12 @@ class Settings(BaseSettings):
     # OpenAI
     OPENAI_API_KEY: str = "sk-test-key"  # Default for testing
     OPENAI_MODEL: str = "gpt-4-turbo"
-    OPENAI_TEMPERATURE: float = 0.3
-    OPENAI_MAX_TOKENS: int = 1000
+    OPENAI_TEMPERATURE: float = 0.6  # Higher for more natural, conversational responses
+    OPENAI_MAX_TOKENS: int = 1500  # Increased to avoid truncation of structured output
 
     # Agent Configuration
     AGENT_NAME: str = "María"
-    COMPANY_NAME: str = "Transformas"
+    COMPANY_NAME: str = "Transpormax"
     EPS_NAME: str = "Cosalud"
     # Agent backend: "mock" (no LLM) or "llm" (OpenAI via LangChain)
     AGENT_MODE: str = "mock"

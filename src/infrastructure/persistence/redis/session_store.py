@@ -28,3 +28,17 @@ class RedisSessionStore:
 
     async def delete(self, session_id: str) -> None:
         await self._client.delete(self._key(session_id))
+
+    async def find_all_keys(self, pattern: str = "*") -> list:
+        """
+        Find all session keys matching the pattern
+
+        Args:
+            pattern: Redis key pattern (default: "*")
+
+        Returns:
+            List of session keys
+        """
+        full_pattern = f"{self._prefix}{pattern}"
+        keys = await self._client.keys(full_pattern)
+        return [key.decode('utf-8') if isinstance(key, bytes) else key for key in keys]

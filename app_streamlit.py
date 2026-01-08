@@ -2,6 +2,12 @@
 Streamlit Chat Application for Testing Medical Transport Agent
 
 Test both INBOUND and OUTBOUND calls through an interactive chat interface.
+
+This application uses the UNIFIED ENDPOINT (/conversation/unified) which simplifies
+the conversation flow by:
+- Automatically creating or continuing sessions based on patient_phone
+- No need to manually manage session_id headers
+- Single endpoint for all conversation messages
 """
 import streamlit as st
 import requests
@@ -10,11 +16,11 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 # API Configuration
-API_BASE_URL = "http://localhost:8000/api/v1"
+API_BASE_URL = "http://localhost:8081/api/v1"
 
 # Page configuration
 st.set_page_config(
-    page_title="Transformas - Agente de Transporte Médico",
+    page_title="Transpormax - Agente de Transporte Médico",
     page_icon="🚐",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -80,6 +86,8 @@ def init_session_state():
     """Initialize session state variables"""
     if "session_id" not in st.session_state:
         st.session_state.session_id = None
+    if "patient_phone" not in st.session_state:
+        st.session_state.patient_phone = None
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "call_type" not in st.session_state:
@@ -90,40 +98,19 @@ def init_session_state():
         st.session_state.patient_info = {}
 
 
-def create_session(is_outbound: bool, agent_name: str, patient_phone: Optional[str] = None) -> Dict[str, Any]:
-    """Create a new conversation session"""
+def send_message_unified(patient_phone: str, message: str, is_outbound: bool, agent_name: str = "María") -> Dict[str, Any]:
+    """Send a message using the unified endpoint"""
     try:
         payload = {
+            "patient_phone": patient_phone,
+            "message": message,
             "is_outbound": is_outbound,
             "agent_name": agent_name
         }
 
-        if is_outbound and patient_phone:
-            payload["patient_phone"] = patient_phone
-
         response = requests.post(
-            f"{API_BASE_URL}/session/create",
+            f"{API_BASE_URL}/conversation/unified",
             json=payload,
-            timeout=10
-        )
-
-        if response.status_code == 201:
-            return {"success": True, "data": response.json()}
-        else:
-            error_detail = response.json().get("detail", "Unknown error")
-            return {"success": False, "error": error_detail}
-
-    except requests.exceptions.RequestException as e:
-        return {"success": False, "error": f"Connection error: {str(e)}"}
-
-
-def send_message(session_id: str, message: str) -> Dict[str, Any]:
-    """Send a message to the agent"""
-    try:
-        response = requests.post(
-            f"{API_BASE_URL}/conversation/message/v2",
-            headers={"X-Session-ID": session_id},
-            json={"message": message},
             timeout=30
         )
 
@@ -135,22 +122,6 @@ def send_message(session_id: str, message: str) -> Dict[str, Any]:
 
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": f"Connection error: {str(e)}"}
-
-
-def get_session_details(session_id: str) -> Optional[Dict[str, Any]]:
-    """Get session details"""
-    try:
-        response = requests.get(
-            f"{API_BASE_URL}/calls/{session_id}",
-            timeout=10
-        )
-
-        if response.status_code == 200:
-            return response.json()
-        return None
-
-    except requests.exceptions.RequestException:
-        return None
 
 
 def display_chat_message(role: str, content: str, timestamp: str = None):
@@ -198,36 +169,55 @@ def main():
 
         is_outbound = "SALIENTE" in call_type_option
 
-        # Patient phone for outbound calls
-        patient_phone = None
+        # Patient phone (required for unified endpoint)
         if is_outbound:
-            st.info("💡 Para llamadas salientes, ingrese el teléfono del paciente registrado en el sistema")
-            patient_phone = st.text_input(
-                "Teléfono del Paciente",
-                placeholder="3001234567",
-                max_chars=10,
-                key="patient_phone_input"
-            )
+            st.info("💡 Para llamadas salientes, el teléfono debe existir en el archivo Excel del sistema")
+        else:
+            st.info("💡 Para llamadas entrantes, ingrese cualquier teléfono como identificador de la conversación")
+
+        patient_phone = st.text_input(
+            "Teléfono del Paciente",
+            placeholder="3001234567",
+            max_chars=10,
+            key="patient_phone_input",
+            help="El teléfono identifica la conversación de manera única"
+        )
 
         st.divider()
 
         # Start new conversation button
         if st.button("🆕 Iniciar Nueva Conversación", type="primary", use_container_width=True):
-            if is_outbound and not patient_phone:
-                st.error("⚠️ Debe ingresar el teléfono del paciente para llamadas salientes")
+            if not patient_phone:
+                st.error("⚠️ Debe ingresar el teléfono del paciente")
             else:
-                with st.spinner("Creando sesión..."):
-                    result = create_session(is_outbound, agent_name, patient_phone)
+                with st.spinner("Iniciando conversación..."):
+                    # Use "START" message to initiate the conversation
+                    initial_message = "START" if is_outbound else "Buenos días"
+                    result = send_message_unified(patient_phone, initial_message, is_outbound, agent_name)
 
                     if result["success"]:
-                        session_data = result["data"]
-                        st.session_state.session_id = session_data["session_id"]
+                        response_data = result["data"]
+                        st.session_state.session_id = response_data["session_id"]
+                        st.session_state.patient_phone = patient_phone
                         st.session_state.call_type = "OUTBOUND" if is_outbound else "INBOUND"
-                        st.session_state.conversation_phase = session_data["conversation_phase"]
+                        st.session_state.conversation_phase = response_data.get("conversation_phase")
                         st.session_state.messages = []
-                        st.session_state.patient_info = {}
 
-                        st.success(f"✅ Sesión creada: {session_data['session_id'][:8]}...")
+                        # Add the agent's initial response
+                        agent_response = response_data.get("agent_response", "")
+                        if agent_response:
+                            st.session_state.messages.append({
+                                "role": "agent",
+                                "content": agent_response,
+                                "timestamp": datetime.now().strftime("%H:%M:%S")
+                            })
+
+                        st.session_state.patient_info = {
+                            "patient_name": response_data.get("patient_name"),
+                            "service_type": response_data.get("service_type")
+                        }
+
+                        st.success(f"✅ Conversación iniciada: {response_data['session_id'][:8]}...")
                         st.rerun()
                     else:
                         st.error(f"❌ Error: {result['error']}")
@@ -237,6 +227,7 @@ def main():
             st.divider()
             if st.button("🔴 Terminar Conversación", use_container_width=True):
                 st.session_state.session_id = None
+                st.session_state.patient_phone = None
                 st.session_state.messages = []
                 st.session_state.call_type = None
                 st.session_state.conversation_phase = None
@@ -248,22 +239,16 @@ def main():
             st.divider()
             st.subheader("📊 Información de Sesión")
 
-            # Get detailed session info
-            session_details = get_session_details(st.session_state.session_id)
+            st.write(f"**Session ID:** `{st.session_state.session_id[:16]}...`")
+            st.write(f"**Teléfono:** {st.session_state.patient_phone or 'N/A'}")
+            st.write(f"**Tipo:** {st.session_state.call_type or 'N/A'}")
+            st.write(f"**Fase:** {st.session_state.conversation_phase or 'N/A'}")
 
-            if session_details:
-                st.write(f"**Session ID:** `{st.session_state.session_id[:16]}...`")
-                st.write(f"**Tipo:** {session_details.get('call_direction', 'N/A')}")
-                st.write(f"**Fase:** {session_details.get('conversation_phase', 'N/A')}")
+            if st.session_state.patient_info.get('patient_name'):
+                st.write(f"**Paciente:** {st.session_state.patient_info['patient_name']}")
 
-                if session_details.get('patient_name'):
-                    st.write(f"**Paciente:** {session_details['patient_name']}")
-
-                if session_details.get('service_type'):
-                    st.write(f"**Servicio:** {session_details['service_type']}")
-
-                if session_details.get('confirmation_status'):
-                    st.write(f"**Estado:** {session_details['confirmation_status']}")
+            if st.session_state.patient_info.get('service_type'):
+                st.write(f"**Servicio:** {st.session_state.patient_info['service_type']}")
 
     # Main chat area
     if not st.session_state.session_id:
@@ -282,6 +267,8 @@ def main():
             - **Coordinación del servicio**
             - **Gestión de incidencias** (opcional)
             - **Cierre y encuesta**
+
+            **Nota:** Ingrese el teléfono del paciente para identificar la conversación.
             """)
 
         with col2:
@@ -294,7 +281,7 @@ def main():
             - **Casos especiales** (cambios, quejas)
             - **Cierre**
 
-            **Nota:** Requiere datos del paciente en el sistema Excel.
+            **Nota:** Requiere que el teléfono esté registrado en el archivo Excel del sistema.
             """)
 
     else:
@@ -344,9 +331,15 @@ def main():
                 "timestamp": datetime.now().strftime("%H:%M:%S")
             })
 
-            # Send to API
+            # Send to API using unified endpoint
             with st.spinner("Pensando..."):
-                result = send_message(st.session_state.session_id, user_input)
+                is_outbound = st.session_state.call_type == "OUTBOUND"
+                result = send_message_unified(
+                    st.session_state.patient_phone,
+                    user_input,
+                    is_outbound,
+                    agent_name
+                )
 
                 if result["success"]:
                     response_data = result["data"]
@@ -361,6 +354,12 @@ def main():
 
                     # Update conversation phase
                     st.session_state.conversation_phase = response_data.get("conversation_phase")
+
+                    # Update patient info if available
+                    if response_data.get("patient_name"):
+                        st.session_state.patient_info["patient_name"] = response_data["patient_name"]
+                    if response_data.get("service_type"):
+                        st.session_state.patient_info["service_type"] = response_data["service_type"]
 
                     # Check for escalation
                     if response_data.get("requires_escalation"):

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -17,23 +16,34 @@ from src.infrastructure.persistence.redis.session_store import RedisSessionStore
 
 
 class LLMOutput(BaseModel):
-    agent_response: str = Field(min_length=1)
-    next_phase: ConversationPhase
-    requires_escalation: bool = False
-    escalation_reason: Optional[str] = None
-    extracted: Dict[str, Any] = Field(default_factory=dict)
+    """
+    LLM Output schema for structured responses
+
+    Note: All optional fields must use Optional[T] with default=None
+    to generate valid OpenAI structured output schema
+    """
+    agent_response: str = Field(min_length=1, description="Agent's response message")
+    next_phase: ConversationPhase = Field(description="Next conversation phase")
+    requires_escalation: bool = Field(default=False, description="Whether escalation is needed")
+    escalation_reason: Optional[str] = Field(default=None, description="Reason for escalation if needed")
+    extracted: Optional[Dict[str, Any]] = Field(default=None, description="Extracted data from user message")
 
 
 class LLMConversationalAgent:
     def __init__(self, *, settings: Settings, store: RedisSessionStore, llm: Optional[Any] = None):
         self._settings = settings
         self._store = store
-        self._llm = llm or ChatOpenAI(
+
+        # Configure LLM with structured output to ensure valid JSON responses
+        base_llm = llm or ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
             model_name=settings.OPENAI_MODEL,
             temperature=settings.OPENAI_TEMPERATURE,
             max_tokens=settings.OPENAI_MAX_TOKENS,
         )
+
+        # Use structured output to guarantee JSON format
+        self._llm = base_llm.with_structured_output(LLMOutput)
 
     def create_session(self, agent_name: Optional[str] = None) -> str:
         return str(uuid.uuid4())
@@ -143,13 +153,11 @@ class LLMConversationalAgent:
             elif role == "assistant":
                 messages.append(AIMessage(content=content))
 
-        llm_result = await self._llm.ainvoke(messages)
-        raw_content = (getattr(llm_result, "content", None) or "").strip()
-
+        # With structured output, LLM returns LLMOutput object directly
         try:
-            parsed = LLMOutput.model_validate(json.loads(raw_content))
-        except (json.JSONDecodeError, ValidationError):
-            agent_response = raw_content or "Disculpe, ¿podría repetir por favor?"
+            parsed = await self._llm.ainvoke(messages)
+        except Exception:
+            agent_response = "Disculpe, ¿podría repetir por favor?"
             state.setdefault("messages", []).append(
                 {"role": "assistant", "content": agent_response, "timestamp": datetime.utcnow().isoformat()}
             )

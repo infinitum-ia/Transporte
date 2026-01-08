@@ -51,6 +51,25 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     async def startup_event():
         """Startup event handler"""
+        # Initialize Excel service first (if path is provided)
+        excel_service = None
+        if settings.EXCEL_PATH and os.path.exists(settings.EXCEL_PATH):
+            try:
+                excel_service = ExcelOutboundService(
+                    excel_path=settings.EXCEL_PATH,
+                    backup_folder=settings.EXCEL_BACKUP_FOLDER
+                )
+                print(f"📊 Excel service initialized: {settings.EXCEL_PATH}")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not initialize Excel service: {str(e)}")
+                excel_service = None
+        else:
+            if settings.EXCEL_PATH:
+                print(f"⚠️  Warning: Excel file not found at {settings.EXCEL_PATH}")
+
+        app.state.excel_service = excel_service
+
+        # Initialize agent and orchestrator
         agent_mode = (settings.AGENT_MODE or "mock").strip().lower()
         if agent_mode == "llm":
             redis_client = create_redis_client(settings)
@@ -58,32 +77,17 @@ def create_app() -> FastAPI:
             app.state.session_store = RedisSessionStore(redis_client, ttl_seconds=settings.SESSION_TTL_SECONDS)
             app.state.agent = create_agent(settings=settings, store=app.state.session_store)
 
-            # Initialize CallOrchestrator
+            # Initialize CallOrchestrator with Excel service
             app.state.call_orchestrator = CallOrchestrator(
                 settings=settings,
-                store=app.state.session_store
+                store=app.state.session_store,
+                excel_service=excel_service
             )
         else:
             app.state.redis = None
             app.state.session_store = None
             app.state.agent = create_agent(settings=settings, store=None)
             app.state.call_orchestrator = None
-
-        # Initialize Excel service if path is provided
-        if settings.EXCEL_PATH and os.path.exists(settings.EXCEL_PATH):
-            try:
-                app.state.excel_service = ExcelOutboundService(
-                    excel_path=settings.EXCEL_PATH,
-                    backup_folder=settings.EXCEL_BACKUP_FOLDER
-                )
-                print(f"📊 Excel service initialized: {settings.EXCEL_PATH}")
-            except Exception as e:
-                print(f"⚠️  Warning: Could not initialize Excel service: {str(e)}")
-                app.state.excel_service = None
-        else:
-            app.state.excel_service = None
-            if settings.EXCEL_PATH:
-                print(f"⚠️  Warning: Excel file not found at {settings.EXCEL_PATH}")
 
         print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting...")
         print(f"📍 Environment: {settings.ENVIRONMENT}")
