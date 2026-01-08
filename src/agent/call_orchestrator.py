@@ -5,12 +5,11 @@ Manages both inbound and outbound calls, routing to appropriate prompts and logi
 """
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
@@ -22,14 +21,21 @@ from src.domain.value_objects.call_direction import CallDirection
 from src.infrastructure.config.settings import Settings
 from src.infrastructure.persistence.redis.session_store import RedisSessionStore
 from src.infrastructure.persistence.excel_service import ExcelOutboundService, PatientServiceData
+from src.infrastructure.logging import get_logger
 
 
 class LLMOutput(BaseModel):
-    agent_response: str = Field(min_length=1)
-    next_phase: ConversationPhase
-    requires_escalation: bool = False
-    escalation_reason: Optional[str] = None
-    extracted: Dict[str, Any] = Field(default_factory=dict)
+    """
+    LLM Output schema for structured responses
+
+    Note: All optional fields must use Optional[T] with default=None
+    to generate valid OpenAI structured output schema
+    """
+    agent_response: str = Field(min_length=1, description="Agent's response message")
+    next_phase: ConversationPhase = Field(description="Next conversation phase")
+    requires_escalation: bool = Field(default=False, description="Whether escalation is needed")
+    escalation_reason: Optional[str] = Field(default=None, description="Reason for escalation if needed")
+    extracted: Optional[Dict[str, Any]] = Field(default=None, description="Extracted data from user message")
 
 
 class CallOrchestrator:
@@ -51,12 +57,19 @@ class CallOrchestrator:
         self._settings = settings
         self._store = store
         self._excel_service = excel_service
-        self._llm = llm or ChatOpenAI(
+
+        # Configure LLM with structured output to ensure valid JSON responses
+        base_llm = llm or ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
             model_name=settings.OPENAI_MODEL,
             temperature=settings.OPENAI_TEMPERATURE,
             max_tokens=settings.OPENAI_MAX_TOKENS,
         )
+
+        # Use structured output to guarantee JSON format
+        self._llm = base_llm.with_structured_output(LLMOutput)
+
+        self._logger = get_logger(log_level=settings.LOG_LEVEL)
 
     # ==========================================
     # SESSION MANAGEMENT
@@ -115,6 +128,14 @@ class CallOrchestrator:
             "updated_at": now,
         }
         await self._store.set(session_id, state)
+
+        # Log session creation
+        self._logger.log_session_created(
+            session_id=session_id,
+            call_direction=CallDirection.INBOUND.value,
+            agent_name=agent_name or self._settings.AGENT_NAME
+        )
+
         return state
 
     async def init_outbound_session(
@@ -186,6 +207,16 @@ class CallOrchestrator:
             "patient_data": patient_data.to_dict()
         }
         await self._store.set(session_id, state)
+
+        # Log session creation
+        self._logger.log_session_created(
+            session_id=session_id,
+            call_direction=CallDirection.OUTBOUND.value,
+            patient_phone=patient_data.telefono,
+            patient_name=patient_data.nombre_completo,
+            agent_name=agent_name or self._settings.AGENT_NAME
+        )
+
         return state
 
     async def get_session_async(self, session_id: str) -> Optional[Dict[str, Any]]:
@@ -255,14 +286,11 @@ class CallOrchestrator:
             HumanMessage(content=initial_user_message)
         ]
 
-        # Get LLM response
-        llm_result = await self._llm.ainvoke(messages)
-        raw_content = (getattr(llm_result, "content", None) or "").strip()
-
+        # Get LLM response (structured output returns LLMOutput object directly)
         try:
-            parsed = LLMOutput.model_validate(json.loads(raw_content))
+            parsed = await self._llm.ainvoke(messages)
             agent_initial_message = parsed.agent_response
-        except (json.JSONDecodeError, ValidationError):
+        except Exception:
             # Fallback to template-based greeting
             agent_initial_message = (
                 f"Buenos días, ¿hablo con {patient_data.nombre_completo}? "
@@ -341,6 +369,15 @@ class CallOrchestrator:
             {"role": "user", "content": user_message, "timestamp": datetime.utcnow().isoformat()}
         )
 
+        # Log user message
+        self._logger.log_message(
+            session_id=session_id,
+            role="user",
+            content=user_message,
+            current_phase=current_phase.value,
+            call_direction=CallDirection.INBOUND.value
+        )
+
         # Build system prompt for inbound call
         system_prompt = build_inbound_system_prompt(
             agent_name=agent_name,
@@ -359,13 +396,20 @@ class CallOrchestrator:
             elif role == "assistant":
                 messages.append(AIMessage(content=content))
 
-        llm_result = await self._llm.ainvoke(messages)
-        raw_content = (getattr(llm_result, "content", None) or "").strip()
-
+        # With structured output, LLM returns LLMOutput object directly
         try:
-            parsed = LLMOutput.model_validate(json.loads(raw_content))
-        except (json.JSONDecodeError, ValidationError):
-            agent_response = raw_content or "Disculpe, ¿podría repetir por favor?"
+            parsed = await self._llm.ainvoke(messages)
+        except Exception as e:
+            agent_response = "Disculpe, ¿podría repetir por favor?"
+
+            # Log LLM error
+            self._logger.log_llm_error(
+                session_id=session_id,
+                error_type="llm_invocation_error",
+                error_message=str(e),
+                current_phase=current_phase.value
+            )
+
             state.setdefault("messages", []).append(
                 {"role": "assistant", "content": agent_response, "timestamp": datetime.utcnow().isoformat()}
             )
@@ -374,14 +418,33 @@ class CallOrchestrator:
                 "session_id": session_id,
                 "agent_response": agent_response,
                 "conversation_phase": current_phase.value,
+                "call_direction": state.get("call_direction", CallDirection.INBOUND.value),
                 "requires_escalation": bool(state.get("requires_escalation", False)),
                 "metadata": {"llm_parse_error": True},
             }
 
         next_phase = self._guard_transition(current_phase, parsed.next_phase)
 
+        # Log phase transition
+        if current_phase != next_phase:
+            self._logger.log_phase_transition(
+                session_id=session_id,
+                from_phase=current_phase.value,
+                to_phase=next_phase.value,
+                call_direction=CallDirection.INBOUND.value
+            )
+
         state["requires_escalation"] = parsed.requires_escalation
         state["escalation_reason"] = parsed.escalation_reason
+
+        # Log escalation if required
+        if parsed.requires_escalation:
+            self._logger.log_escalation(
+                session_id=session_id,
+                reason=parsed.escalation_reason or "Unknown",
+                current_phase=current_phase.value,
+                call_direction=CallDirection.INBOUND.value
+            )
         if current_phase == ConversationPhase.LEGAL_NOTICE and next_phase == ConversationPhase.SERVICE_COORDINATION:
             state["legal_notice_acknowledged"] = True
         if current_phase == ConversationPhase.SURVEY and next_phase == ConversationPhase.END:
@@ -389,10 +452,27 @@ class CallOrchestrator:
 
         self._merge_extracted(state, parsed.extracted or {})
 
+        # Log data extraction
+        if parsed.extracted:
+            self._logger.log_data_extraction(
+                session_id=session_id,
+                extracted_data=parsed.extracted,
+                current_phase=current_phase.value
+            )
+
         state.setdefault("messages", []).append(
             {"role": "assistant", "content": parsed.agent_response, "timestamp": datetime.utcnow().isoformat()}
         )
         state["phase"] = next_phase.value
+
+        # Log agent response
+        self._logger.log_message(
+            session_id=session_id,
+            role="assistant",
+            content=parsed.agent_response,
+            current_phase=next_phase.value,
+            call_direction=CallDirection.INBOUND.value
+        )
 
         await self._store.set(session_id, state)
 
@@ -400,6 +480,7 @@ class CallOrchestrator:
             "session_id": session_id,
             "agent_response": parsed.agent_response,
             "conversation_phase": next_phase.value,
+            "call_direction": CallDirection.INBOUND.value,
             "requires_escalation": parsed.requires_escalation,
             "metadata": {
                 "escalation_reason": parsed.escalation_reason,
@@ -426,6 +507,15 @@ class CallOrchestrator:
             {"role": "user", "content": user_message, "timestamp": datetime.utcnow().isoformat()}
         )
 
+        # Log user message
+        self._logger.log_message(
+            session_id=session_id,
+            role="user",
+            content=user_message,
+            current_phase=current_phase.value,
+            call_direction=CallDirection.OUTBOUND.value
+        )
+
         # Build system prompt for outbound call with patient data
         system_prompt = build_outbound_system_prompt(
             agent_name=agent_name,
@@ -445,13 +535,20 @@ class CallOrchestrator:
             elif role == "assistant":
                 messages.append(AIMessage(content=content))
 
-        llm_result = await self._llm.ainvoke(messages)
-        raw_content = (getattr(llm_result, "content", None) or "").strip()
-
+        # With structured output, LLM returns LLMOutput object directly
         try:
-            parsed = LLMOutput.model_validate(json.loads(raw_content))
-        except (json.JSONDecodeError, ValidationError):
-            agent_response = raw_content or "Disculpe, ¿podría repetir por favor?"
+            parsed = await self._llm.ainvoke(messages)
+        except Exception as e:
+            agent_response = "Disculpe, ¿podría repetir por favor?"
+
+            # Log LLM error
+            self._logger.log_llm_error(
+                session_id=session_id,
+                error_type="llm_invocation_error",
+                error_message=str(e),
+                current_phase=current_phase.value
+            )
+
             state.setdefault("messages", []).append(
                 {"role": "assistant", "content": agent_response, "timestamp": datetime.utcnow().isoformat()}
             )
@@ -460,6 +557,7 @@ class CallOrchestrator:
                 "session_id": session_id,
                 "agent_response": agent_response,
                 "conversation_phase": current_phase.value,
+                "call_direction": state.get("call_direction", CallDirection.OUTBOUND.value),
                 "requires_escalation": bool(state.get("requires_escalation", False)),
                 "metadata": {"llm_parse_error": True},
             }
@@ -485,8 +583,26 @@ class CallOrchestrator:
 
         next_phase = self._guard_transition(current_phase, proposed_next_phase)
 
+        # Log phase transition
+        if current_phase != next_phase:
+            self._logger.log_phase_transition(
+                session_id=session_id,
+                from_phase=current_phase.value,
+                to_phase=next_phase.value,
+                call_direction=CallDirection.OUTBOUND.value
+            )
+
         state["requires_escalation"] = parsed.requires_escalation
         state["escalation_reason"] = parsed.escalation_reason
+
+        # Log escalation if required
+        if parsed.requires_escalation:
+            self._logger.log_escalation(
+                session_id=session_id,
+                reason=parsed.escalation_reason or "Unknown",
+                current_phase=current_phase.value,
+                call_direction=CallDirection.OUTBOUND.value
+            )
 
         # Track confirmation status
         if "service_confirmed" in extracted:
@@ -513,14 +629,41 @@ class CallOrchestrator:
         # Merge general extracted data
         self._merge_extracted(state, extracted)
 
+        # Log data extraction
+        if extracted:
+            self._logger.log_data_extraction(
+                session_id=session_id,
+                extracted_data=extracted,
+                current_phase=current_phase.value
+            )
+
         state.setdefault("messages", []).append(
             {"role": "assistant", "content": parsed.agent_response, "timestamp": datetime.utcnow().isoformat()}
         )
         state["phase"] = next_phase.value
 
-        # If call ended, update Excel
-        if next_phase == ConversationPhase.END and self._excel_service:
-            await self._update_excel_after_call(state)
+        # Log agent response
+        self._logger.log_message(
+            session_id=session_id,
+            role="assistant",
+            content=parsed.agent_response,
+            current_phase=next_phase.value,
+            call_direction=CallDirection.OUTBOUND.value
+        )
+
+        # If call ended, update Excel and log completion
+        if next_phase == ConversationPhase.END:
+            if self._excel_service:
+                await self._update_excel_after_call(state)
+
+            # Log call completion
+            self._logger.log_call_completed(
+                session_id=session_id,
+                call_direction=CallDirection.OUTBOUND.value,
+                final_phase=next_phase.value,
+                message_count=len(state.get("messages", [])),
+                confirmation_status=state.get("confirmation_status")
+            )
 
         await self._store.set(session_id, state)
 
@@ -580,6 +723,173 @@ class CallOrchestrator:
             new_status=confirmation_status,
             observations=observations
         )
+
+
+    # ==========================================
+    # UNIFIED CONVERSATION (PHONE-BASED)
+    # ==========================================
+
+    async def find_session_by_phone(self, phone: str) -> Optional[str]:
+        """
+        Find active session by phone number
+
+        Searches Redis for active sessions with the given phone number.
+
+        Args:
+            phone: Patient phone number
+
+        Returns:
+            session_id if found, None otherwise
+        """
+        # Get all session keys from Redis
+        try:
+            keys = await self._store.find_all_keys("*")
+            for key in keys:
+                # Extract session_id from full key (e.g., "transport:session:uuid" -> "uuid")
+                session_id = key.replace("transport:session:", "").replace("session:", "")
+                state = await self._store.get(session_id)
+                if state:
+                    patient_phone = state.get("patient", {}).get("phone")
+                    if patient_phone == phone:
+                        return session_id
+        except Exception as e:
+            print(f"Error searching session by phone: {e}")
+        return None
+
+    async def process_unified_message(
+        self,
+        patient_phone: str,
+        user_message: str,
+        is_outbound: bool = True,
+        agent_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Process message with automatic session management
+
+        This method handles the complete flow:
+        1. Check if session exists for phone
+        2. If not, create new session (outbound or inbound)
+        3. Process the message
+        4. Return response with session info
+
+        Args:
+            patient_phone: Patient phone number (10 digits)
+            user_message: User's message
+            is_outbound: True for outbound, False for inbound
+            agent_name: Agent name (optional)
+
+        Returns:
+            Dict with response, session info, and metadata
+        """
+        session_created = False
+        session_id = None
+
+        # Try to find existing session
+        session_id = await self.find_session_by_phone(patient_phone)
+
+        # Log unified endpoint request
+        self._logger.log_unified_endpoint_request(
+            patient_phone=patient_phone,
+            is_outbound=is_outbound,
+            message_preview=user_message,
+            session_found=(session_id is not None)
+        )
+
+        if not session_id:
+            # Create new session
+            session_id = self.create_session(agent_name=agent_name)
+            session_created = True
+
+            if is_outbound:
+                # Outbound call - need Excel data
+                if self._excel_service is None:
+                    raise ValueError("Excel service not configured. Cannot create outbound session.")
+
+                patient_data = self._excel_service.get_patient_by_phone(patient_phone)
+                if patient_data is None:
+                    raise ValueError(f"No patient found with phone: {patient_phone}")
+
+                state = await self.init_outbound_session(
+                    session_id=session_id,
+                    patient_data=patient_data,
+                    agent_name=agent_name
+                )
+
+                # For first message in outbound, generate initial greeting if it's a system message
+                if user_message.strip() in ["", "START", "[START]", "[INICIO]"]:
+                    # Generate initial greeting
+                    current_phase = ConversationPhase.OUTBOUND_GREETING
+                    system_prompt = build_outbound_system_prompt(
+                        agent_name=agent_name or self._settings.AGENT_NAME,
+                        company_name=self._settings.COMPANY_NAME,
+                        eps_name=self._settings.EPS_NAME,
+                        phase=current_phase,
+                        patient_data=state.get("patient_data", {})
+                    )
+
+                    messages = [
+                        SystemMessage(content=system_prompt),
+                        HumanMessage(content="[SYSTEM: Generate initial greeting for outbound call]")
+                    ]
+
+                    # Structured output returns LLMOutput object directly
+                    try:
+                        parsed = await self._llm.ainvoke(messages)
+                        agent_response = parsed.agent_response
+                    except Exception:
+                        agent_response = (
+                            f"Buenos días, ¿hablo con {patient_data.nombre_completo}? "
+                            f"Le llamo de {self._settings.COMPANY_NAME} para confirmar su servicio."
+                        )
+
+                    state.setdefault("messages", []).append({
+                        "role": "assistant",
+                        "content": agent_response,
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+                    await self._store.set(session_id, state)
+
+                    return {
+                        "session_id": session_id,
+                        "agent_response": agent_response,
+                        "conversation_phase": state["phase"],
+                        "call_direction": CallDirection.OUTBOUND.value,
+                        "requires_escalation": False,
+                        "session_created": True,
+                        "patient_name": patient_data.nombre_completo,
+                        "service_type": patient_data.tipo_servicio,
+                        "metadata": {}
+                    }
+
+            else:
+                # Inbound call - no Excel data needed
+                state = await self.init_inbound_session(
+                    session_id=session_id,
+                    agent_name=agent_name
+                )
+                # Add phone to state
+                state.setdefault("patient", {})["phone"] = patient_phone
+                await self._store.set(session_id, state)
+
+        # Process the message
+        response = await self.process_message(session_id, user_message)
+
+        # Add session management info
+        response["session_created"] = session_created
+
+        # Add patient info if available
+        state = await self._store.get(session_id)
+        if state:
+            patient = state.get("patient", {}) or {}
+            service = state.get("service", {}) or {}
+            response["patient_name"] = patient.get("patient_full_name")
+            response["service_type"] = service.get("service_type")
+
+            # Ensure call_direction is present
+            if "call_direction" not in response:
+                response["call_direction"] = state.get("call_direction", CallDirection.INBOUND.value)
+
+        return response
 
     def _guard_transition(self, current: ConversationPhase, proposed: ConversationPhase) -> ConversationPhase:
         """Validate phase transition"""

@@ -1,16 +1,13 @@
 """
 Call Management Endpoints
 
-Endpoints for administering both inbound and outbound calls
+Provides monitoring, statistics, and management capabilities for calls.
+Call initiation is handled by the unified conversation endpoint.
 """
-from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
-from typing import Optional
 
 from ..schemas.call_schema import (
-    OutboundCallCreateRequest,
-    OutboundCallCreateResponse,
-    OutboundCallInitiateResponse,
     PendingCallsResponse,
     PendingCallItem,
     CallStatisticsResponse,
@@ -26,133 +23,8 @@ router = APIRouter(prefix="/calls", tags=["calls"])
 
 
 # ==========================================
-# OUTBOUND CALL MANAGEMENT
+# CALL MONITORING & STATISTICS
 # ==========================================
-
-@router.post("/outbound", response_model=OutboundCallCreateResponse,
-    OutboundCallInitiateResponse, status_code=status.HTTP_201_CREATED)
-async def create_outbound_call(
-    request: OutboundCallCreateRequest,
-    orchestrator: CallOrchestrator = Depends(get_call_orchestrator),
-    excel_service: ExcelOutboundService = Depends(get_excel_service)
-):
-    """
-    Create outbound call session
-
-    Creates a new outbound call session by loading patient data from Excel
-    based on the provided phone number.
-
-    **Request:**
-    - `patient_phone`: 10-digit phone number
-    - `agent_name`: Optional agent name (default: María)
-
-    **Response:**
-    - Session ID and pre-loaded patient/service information
-    """
-    try:
-        # Get patient data from Excel
-        patient_data = excel_service.get_patient_by_phone(request.patient_phone)
-
-        if patient_data is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No patient found with phone number: {request.patient_phone}"
-            )
-
-        # Create session
-        session_id = orchestrator.create_session(agent_name=request.agent_name)
-
-        # Initialize outbound session with patient data
-        state = await orchestrator.init_outbound_session(
-            session_id=session_id,
-            patient_data=patient_data,
-            agent_name=request.agent_name
-        )
-
-        return OutboundCallCreateResponse(
-            session_id=session_id,
-            call_direction="OUTBOUND",
-            patient_name=patient_data.nombre_completo,
-            service_type=patient_data.tipo_servicio,
-            appointment_date=patient_data.fecha_servicio,
-            created_at=state["created_at"]
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating outbound call: {str(e)}"
-        )
-
-
-
-
-@router.post("/outbound/initiate", response_model=OutboundCallInitiateResponse, status_code=status.HTTP_201_CREATED)
-async def initiate_outbound_call(
-    request: OutboundCallCreateRequest,
-    orchestrator: CallOrchestrator = Depends(get_call_orchestrator)
-):
-    """
-    Initiate outbound call in a single operation (UNIFIED ENDPOINT)
-
-    This unified endpoint creates the outbound call session AND generates
-    the initial agent greeting message in a single API call.
-
-    **Perfect for external platform integrations** - no need for multiple API calls.
-
-    **Request:**
-    - `patient_phone`: 10-digit phone number (must exist in Excel)
-    - `agent_name`: Optional agent name (default: María)
-
-    **Response:**
-    - Session ID
-    - Initial agent greeting message (ready to play/display)
-    - Patient information
-    - Service details
-
-    **Usage Example:**
-    ```json
-    POST /api/v1/calls/outbound/initiate
-    {
-        "patient_phone": "3001234567",
-        "agent_name": "María"
-    }
-    ```
-
-    **Use this endpoint when:**
-    - Integrating with external calling platforms
-    - You need session creation + initial message in one call
-    - Automating outbound call workflows
-    """
-    try:
-        # Initiate call (creates session + generates initial message)
-        result = await orchestrator.initiate_outbound_call(
-            patient_phone=request.patient_phone,
-            agent_name=request.agent_name
-        )
-
-        return OutboundCallInitiateResponse(**result)
-
-    except ValueError as e:
-        # Patient not found or Excel service not configured
-        error_msg = str(e)
-        if "not found" in error_msg.lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=error_msg
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=error_msg
-            )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error initiating outbound call: {str(e)}"
-        )
 
 @router.get("/outbound/pending", response_model=PendingCallsResponse)
 async def get_pending_calls(
