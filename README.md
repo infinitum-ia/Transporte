@@ -1,7 +1,7 @@
 # Agente Conversacional de Transporte Médico
-## Transformas / EPS Cosalud - MVP
+## Transpormax / EPS Cosalud - MVP
 
-Agente conversacional basado en LLM para automatizar y asistir la coordinación de servicios de transporte médico prestados por **Transformas**, empresa autorizada por la **EPS Cosalud**.
+Agente conversacional basado en LLM para automatizar y asistir la coordinación de servicios de transporte médico prestados por **Transpormax**, empresa autorizada por la **EPS Cosalud**.
 
 ---
 

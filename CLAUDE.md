@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Transformas Medical Transport Agent** - LLM-powered conversational agent for coordinating medical transport services. Built for Transformas (transport company) authorized by EPS Cosalud (healthcare provider).
+**Transpormax Medical Transport Agent** - LLM-powered conversational agent for coordinating medical transport services. Built for Transpormax (transport company) authorized by EPS Cosalud (healthcare provider).
 
 This system handles two call types:
 - **Inbound**: Patients calling to request services or report issues
