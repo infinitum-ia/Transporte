@@ -127,6 +127,7 @@ def create_initial_state(
         "session_id": session_id,
         "call_direction": call_direction,
         "current_phase": initial_phase,
+        "llm_system_prompt": "",
         "agent_name": agent_name,
         "company_name": company_name,
         "eps_name": eps_name,
@@ -142,11 +143,17 @@ def create_initial_state(
         "phone": None,
         "relationship_to_patient": None,
         "caller_name": None,
+
+        # Contact data (for outbound calls)
+        "contact_name": None,
+        "contact_relationship": None,
+        "contact_age": None,
         
         # Datos del servicio
         "service_type": None,
         "treatment_type": None,
         "appointment_dates": [],
+        "appointment_date": None,
         "appointment_time": None,
         "pickup_address": None,
         "frequency": None,
@@ -185,13 +192,23 @@ def create_initial_state(
         
         # Observaciones
         "observations": [],
-        
+        "special_observation": None,
+
+        # Análisis Emocional (Integración Ligera)
+        "emotional_memory": [],
+        "current_sentiment": "Neutro",
+        "current_conflict_level": "Bajo",
+        "personality_mode": "Balanceado",
+        "emotional_validation_required": False,
+        "validation_attempt_count": 0,
+
         # Control de flujo
         "agent_response": "",
         "next_phase": None,
         "turn_count": 0,
         "requires_human_review": False,
-        
+        "greeting_done": False,
+
         # Metadata
         "created_at": now,
         "updated_at": now,

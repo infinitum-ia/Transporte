@@ -2,19 +2,13 @@ from __future__ import annotations
 
 from fastapi import Request, HTTPException, status
 
-from src.agent.base import ConversationalAgent
-from src.agent.call_orchestrator import CallOrchestrator
+from src.agent.langgraph_orchestrator import LangGraphOrchestrator
 from src.infrastructure.persistence.excel_service import ExcelOutboundService
 
 
-def get_agent(request: Request) -> ConversationalAgent:
-    """Get legacy conversational agent (for backward compatibility)"""
-    return request.app.state.agent
-
-
-def get_call_orchestrator(request: Request) -> CallOrchestrator:
+def get_call_orchestrator(request: Request) -> LangGraphOrchestrator:
     """
-    Get call orchestrator from app state
+    Get LangGraph orchestrator from app state
 
     Raises:
         HTTPException: If orchestrator is not configured
@@ -42,4 +36,3 @@ def get_excel_service(request: Request) -> ExcelOutboundService:
             detail="Excel service not configured. Ensure EXCEL_PATH is set in environment."
         )
     return excel_service
-

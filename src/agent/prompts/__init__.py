@@ -1,14 +1,12 @@
 """
 Prompt builders for conversational agent
 
-Exports:
-- build_inbound_system_prompt: For incoming calls (customer calls us)
-- build_outbound_system_prompt: For outgoing calls (we call customer)
+REFACTORED:
+- Unified build_prompt function (replaces build_dynamic_prompt and build_compact_prompt)
+- Clean, centralized prompt construction
 """
-from src.agent.prompts.inbound_prompts import build_inbound_system_prompt
-from src.agent.prompts.outbound_prompts import build_outbound_system_prompt
+from src.agent.prompts.prompt_builder import build_prompt
 
 __all__ = [
-    "build_inbound_system_prompt",
-    "build_outbound_system_prompt",
+    "build_prompt",
 ]

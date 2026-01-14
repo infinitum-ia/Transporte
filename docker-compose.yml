@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: transformas_app
     ports:
-      - "8081:8081"  # Cambié a 8081 como mencionaste en tus tests
+      - "8000:8000"  # Cambié a 8000 como mencionaste en tus tests
     env_file:
       - .env
     depends_on:
@@ -32,11 +32,11 @@ services:
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
-    command: uvicorn src.presentation.api.main:app --host 0.0.0.0 --port 8081 --reload
+    command: uvicorn src.presentation.api.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - transformas_network
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8081/api/v1/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

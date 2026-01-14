@@ -26,48 +26,42 @@ async def unified_conversation(
     - Returns agent response immediately
 
     **Request Body:**
-    - `patient_phone`: Patient phone number (10 digits) - REQUIRED
-    - `message`: User's message - REQUIRED
-    - `is_outbound`: True for outbound (we call patient), False for inbound (patient calls us) - Default: True
-    - `agent_name`: Agent name - Optional (default: "María")
+    - `PATIENT_PHONE`: Patient phone number (10 digits) - REQUIRED
+    - `MESSAGE`: User's message - REQUIRED
+    - `IS_OUTBOUND`: True for outbound (we call patient), False for inbound (patient calls us) - Default: True
+    - `AGENT_NAME`: Agent name - Optional (default: "María")
 
     **Response:**
-    - `session_id`: Session identifier (save for tracking)
-    - `agent_response`: Agent's response message (ready to play/display)
-    - `conversation_phase`: Current phase
-    - `call_direction`: INBOUND or OUTBOUND
-    - `session_created`: True if new session, False if continuing
-    - `patient_name`: Patient name (if known)
-    - `service_type`: Service type (if known)
-    - `requires_escalation`: Whether escalation needed
-    - `metadata`: Additional info
+    - `SESSION_ID`: Session identifier (save for tracking)
+    - `AGENT_RESPONSE`: Agent's response message (ready to play/display)
+    - `FIN`: True if conversation ended, False if conversation continues
 
     **Usage Examples:**
 
     1. **Start outbound call:**
     ```json
     {
-        "patient_phone": "3001234567",
-        "message": "START",
-        "is_outbound": true
+        "PATIENT_PHONE": "3001234567",
+        "MESSAGE": "START",
+        "IS_OUTBOUND": true
     }
     ```
 
     2. **Continue conversation:**
     ```json
     {
-        "patient_phone": "3001234567",
-        "message": "Sí, con él habla",
-        "is_outbound": true
+        "PATIENT_PHONE": "3001234567",
+        "MESSAGE": "Sí, con él habla",
+        "IS_OUTBOUND": true
     }
     ```
 
     3. **Inbound call:**
     ```json
     {
-        "patient_phone": "3001234567",
-        "message": "Buenos días, necesito transporte",
-        "is_outbound": false
+        "PATIENT_PHONE": "3001234567",
+        "MESSAGE": "Buenos días, necesito transporte",
+        "IS_OUTBOUND": false
     }
     ```
 
@@ -88,6 +82,15 @@ async def unified_conversation(
         body = await http_request.json()
         request = UnifiedConversationRequest(**body)
 
+        print(f"\n{'='*80}")
+        print(f"🎯 [ENDPOINT] MENSAJE RECIBIDO")
+        print(f"{'='*80}")
+        print(f"   📞 Teléfono: {request.PATIENT_PHONE}")
+        print(f"   💬 Mensaje: '{request.MESSAGE}'")
+        print(f"   📍 Dirección: {'OUTBOUND (llamamos)' if request.IS_OUTBOUND else 'INBOUND (paciente llama)'}")
+        print(f"   👤 Agente: {request.AGENT_NAME}")
+        print(f"{'='*80}\n")
+
         # Get orchestrator from app state
         orchestrator = getattr(http_request.app.state, "call_orchestrator", None)
         if orchestrator is None:
@@ -97,14 +100,28 @@ async def unified_conversation(
             )
 
         # Process unified message (handles session creation + messaging)
+        print(f"🔄 [ENDPOINT] Enviando a LangGraph Orchestrator...")
         response = await orchestrator.process_unified_message(
-            patient_phone=request.patient_phone,
-            user_message=request.message,
-            is_outbound=request.is_outbound,
-            agent_name=request.agent_name
+            patient_phone=request.PATIENT_PHONE,
+            user_message=request.MESSAGE,
+            is_outbound=request.IS_OUTBOUND,
+            agent_name=request.AGENT_NAME
         )
 
-        return UnifiedConversationResponse(**response)
+        print(f"\n✅ [ENDPOINT] RESPUESTA LISTA")
+        print(f"   🤖 Respuesta: '{response.get('agent_response', '')[:100]}...'")
+        print(f"   📊 Fase: {response.get('conversation_phase')}")
+        print(f"{'='*80}\n")
+
+        # Map response to new schema (UPPERCASE fields)
+        # FIN = True if conversation_phase is "END"
+        fin = response.get('conversation_phase') == 'END'
+
+        return UnifiedConversationResponse(
+            SESSION_ID=response.get('session_id'),
+            AGENT_RESPONSE=response.get('agent_response'),
+            FIN=fin
+        )
 
     except ValueError as e:
         # Patient not found or configuration error

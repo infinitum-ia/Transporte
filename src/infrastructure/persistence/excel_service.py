@@ -60,15 +60,24 @@ class PatientServiceData(BaseModel):
             raise ValueError(f"Phone number must be 10 digits, got: {v}")
         return phone_str
 
-    @validator('estado_confirmacion')
+    @validator('estado_confirmacion', pre=True)
     def validate_status(cls, v):
-        """Validate status is valid"""
+        """Validate status is valid, default to Pendiente if empty"""
+        # Handle NaN, None, empty string
+        if v is None or str(v).strip() in ('', 'nan', 'NaN', 'None'):
+            return "Pendiente"
+
         valid_statuses = [
             "Pendiente", "Confirmado", "Reprogramar",
             "Rechazado", "No contesta", "Zona sin cobertura"
         ]
         if v not in valid_statuses:
-            raise ValueError(f"Invalid status: {v}. Must be one of {valid_statuses}")
+            # Try case-insensitive match
+            for status in valid_statuses:
+                if v.lower() == status.lower():
+                    return status
+            # If still not found, default to Pendiente
+            return "Pendiente"
         return v
 
     @property
@@ -157,7 +166,8 @@ class ExcelOutboundService:
             DataFrame with all data
         """
         try:
-            df = pd.read_csv(self.excel_path, encoding='utf-8')
+            # Auto-detect delimiter (supports both comma and semicolon)
+            df = pd.read_csv(self.excel_path, encoding='utf-8', sep=None, engine='python')
             return df
         except Exception as e:
             raise RuntimeError(f"Error loading Excel file: {str(e)}")

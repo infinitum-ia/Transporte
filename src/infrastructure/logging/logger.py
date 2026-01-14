@@ -7,7 +7,8 @@ import logging
 import json
 import sys
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
+import logging
 from pathlib import Path
 
 
@@ -46,6 +47,9 @@ class Colors:
     BG_MAGENTA = '\033[45m'
     BG_CYAN = '\033[46m'
     BG_WHITE = '\033[47m'
+
+
+graph_service_logger = logging.getLogger("app.services.graph_service")
 
 
 class ConversationLogger:
@@ -181,6 +185,32 @@ class ConversationLogger:
             }
         )
 
+    def log_llm_response(
+        self,
+        session_id: str,
+        current_phase: str,
+        agent_response: str,
+        next_phase: str,
+        extracted_data: Dict[str, Any],
+        requires_escalation: bool
+    ):
+        """Log LLM response details"""
+        self.logger.info(
+            "LLM_RESPONSE",
+            extra={
+                "event_type": "llm_response",
+                "session_id": session_id,
+                "current_phase": current_phase,
+                "next_phase": next_phase,
+                "agent_response_preview": agent_response[:150],
+                "agent_response_length": len(agent_response),
+                "extracted_fields": list(extracted_data.keys()) if extracted_data else [],
+                "extracted_data": extracted_data,
+                "requires_escalation": requires_escalation,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+
     def log_llm_error(
         self,
         session_id: str,
@@ -274,6 +304,41 @@ class ConversationLogger:
             }
         )
 
+    def log_langgraph_state(
+        self,
+        session_id: str,
+        current_phase: str,
+        call_direction: str,
+        agent_name: Optional[str],
+        patient_name: Optional[str],
+        prompt_preview: str,
+        user_message_preview: str,
+        policy_ids: List[str],
+        escalation_required: bool,
+        message_count: int
+    ):
+        """Log LangGraph state before invoking the LLM"""
+        self.logger.info(
+            "LANGGRAPH_STATE",
+            extra={
+                "event_type": "langgraph_debug",
+                "session_id": session_id,
+                "current_phase": current_phase,
+                "call_direction": call_direction,
+                "agent_name": agent_name,
+                "patient_name": patient_name,
+                "prompt_preview": prompt_preview,
+                "user_message_preview": user_message_preview,
+                "policy_ids": policy_ids,
+                "policy_count": len(policy_ids),
+                "escalation_required": escalation_required,
+                "message_count": message_count,
+            "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+        graph_service_logger.debug(f"[Prompt] {prompt_preview}")
+        graph_service_logger.debug(f"[User] {user_message_preview}")
+
 
 class ReadableConversationFormatter(logging.Formatter):
     """Custom formatter for human-readable conversation logs"""
@@ -304,6 +369,10 @@ class ReadableConversationFormatter(logging.Formatter):
             return self._format_call_completed(record, timestamp)
         elif event_type == "unified_request":
             return self._format_unified_request(record, timestamp)
+        elif event_type == "langgraph_debug":
+            return self._format_langgraph_debug(record, timestamp)
+        elif event_type == "llm_response":
+            return self._format_llm_response(record, timestamp)
         else:
             # Default format for other messages
             return f"[{timestamp}] {record.levelname}: {record.getMessage()}"
@@ -455,6 +524,59 @@ class ReadableConversationFormatter(logging.Formatter):
             f"| Tel: {patient_phone} | {direction} | Sesión: {session_status} | '{message_preview}...'"
         )
 
+    def _format_langgraph_debug(self, record: logging.LogRecord, timestamp: str) -> str:
+        """Format LangGraph debug events with truncated prompt info"""
+        session_id = getattr(record, "session_id", "")[:8]
+        phase = getattr(record, "current_phase", "N/A")
+        direction = getattr(record, "call_direction", "N/A")
+        agent = getattr(record, "agent_name", "Agente")
+        patient = getattr(record, "patient_name", "Paciente")
+        prompt = getattr(record, "prompt_preview", "")
+        user_msg = getattr(record, "user_message_preview", "")
+        policies = getattr(record, "policy_ids", []) or []
+        policy_summary = ", ".join(policies[:3]) if policies else "ninguna"
+        escalation = "sí" if getattr(record, "escalation_required", False) else "no"
+        message_count = getattr(record, "message_count", 0)
+
+        prompt_line = prompt.replace("\n", " ").strip()
+        user_line = user_msg.replace("\n", " ").strip()
+
+        return (
+            #f"\n[{timestamp}] LANGGRAPH · S:{session_id} · {direction} · Fase: {phase}\n"
+            #f"Agente: {agent} · Paciente: {patient} · Mensajes: {message_count} · Políticas: {policy_summary} · Escalamiento: {escalation}\n"
+            #f"Prompt (truncado): {prompt_line}\n"
+            f"Último usuario: {user_line}\n"
+        )
+
+    def _format_llm_response(self, record: logging.LogRecord, timestamp: str) -> str:
+        """Format LLM response with extracted data"""
+        session_id = getattr(record, "session_id", "")[:8]
+        phase = getattr(record, "current_phase", "N/A")
+        next_phase = getattr(record, "next_phase", "N/A")
+        response_preview = getattr(record, "agent_response_preview", "")
+        extracted = getattr(record, "extracted_data", {})
+        escalation = getattr(record, "requires_escalation", False)
+
+        # Format extracted data
+        extracted_str = ""
+        if extracted:
+            items = [f"{k}={v}" for k, v in extracted.items() if v]
+            extracted_str = ", ".join(items[:5])  # Limit to 5 items
+            if len(items) > 5:
+                extracted_str += f"... (+{len(items) - 5} más)"
+
+        escalation_marker = "⚠️ SÍ" if escalation else "no"
+
+        return (
+            f"\n{self._colorize('┌' + '─' * 78 + '┐', Colors.BRIGHT_YELLOW)}\n"
+            f"│ [{timestamp}] {self._colorize('💬 RESPUESTA LLM', Colors.YELLOW + Colors.BOLD)} · S:{session_id}\n"
+            f"│ Fase actual: {phase} → Siguiente: {self._colorize(next_phase, Colors.BRIGHT_YELLOW)}\n"
+            f"│ Escalamiento: {escalation_marker}\n"
+            f"│ Respuesta: {self._colorize(response_preview, Colors.YELLOW)}...\n"
+            f"│ Extraído: {self._colorize(extracted_str or 'ninguno', Colors.BRIGHT_YELLOW)}\n"
+            f"{self._colorize('└' + '─' * 78 + '┘', Colors.BRIGHT_YELLOW)}\n"
+        )
+
 
 class StructuredFormatter(logging.Formatter):
     """Custom formatter for structured JSON logs (for file output)"""
@@ -531,6 +653,16 @@ class StructuredFormatter(logging.Formatter):
             log_data["requires_escalation"] = record.requires_escalation
         if hasattr(record, "duration_seconds"):
             log_data["duration_seconds"] = record.duration_seconds
+        if hasattr(record, "prompt_preview"):
+            log_data["prompt_preview"] = record.prompt_preview
+        if hasattr(record, "user_message_preview"):
+            log_data["user_message_preview"] = record.user_message_preview
+        if hasattr(record, "policy_ids"):
+            log_data["policy_ids"] = record.policy_ids
+        if hasattr(record, "policy_count"):
+            log_data["policy_count"] = record.policy_count
+        if hasattr(record, "escalation_required"):
+            log_data["escalation_required"] = record.escalation_required
 
         return json.dumps(log_data, ensure_ascii=False)
 

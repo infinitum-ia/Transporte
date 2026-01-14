@@ -8,13 +8,13 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from ...infrastructure.config.settings import settings
-from ...agent.agent_factory import create_agent, create_orchestrator
+from ...agent.langgraph_orchestrator import LangGraphOrchestrator
 from ...infrastructure.persistence.redis.client import create_redis_client
 from ...infrastructure.persistence.redis.session_store import RedisSessionStore
 from ...infrastructure.persistence.excel_service import ExcelOutboundService
 
 # Import routers
-from .v1.endpoints import conversation, session, health, calls
+from .v1.endpoints import conversation, health, calls
 
 
 def create_app() -> FastAPI:
@@ -43,7 +43,6 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(health.router, prefix=settings.API_PREFIX)
-    app.include_router(session.router, prefix=settings.API_PREFIX)
     app.include_router(conversation.router, prefix=settings.API_PREFIX)
     app.include_router(calls.router, prefix=settings.API_PREFIX)
 
@@ -68,33 +67,23 @@ def create_app() -> FastAPI:
 
         app.state.excel_service = excel_service
 
-        # Initialize agent and orchestrator
-        agent_mode = (settings.AGENT_MODE or "mock").strip().lower()
-        if agent_mode == "llm":
-            redis_client = create_redis_client(settings)
-            app.state.redis = redis_client
-            app.state.session_store = RedisSessionStore(redis_client, ttl_seconds=settings.SESSION_TTL_SECONDS)
-            app.state.agent = create_agent(settings=settings, store=app.state.session_store)
+        # Initialize Redis and session store
+        redis_client = create_redis_client(settings)
+        app.state.redis = redis_client
+        app.state.session_store = RedisSessionStore(redis_client, ttl_seconds=settings.SESSION_TTL_SECONDS)
 
-            # Initialize orchestrator (LangGraph or legacy based on USE_LANGGRAPH setting)
-            app.state.call_orchestrator = create_orchestrator(
-                settings=settings,
-                store=app.state.session_store,
-                excel_service=excel_service
-            )
-        else:
-            app.state.redis = None
-            app.state.session_store = None
-            app.state.agent = create_agent(settings=settings, store=None)
-            app.state.call_orchestrator = None
+        # Initialize LangGraph orchestrator
+        app.state.call_orchestrator = LangGraphOrchestrator(
+            settings=settings,
+            store=app.state.session_store,
+            excel_service=excel_service
+        )
 
         print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting...")
         print(f"📍 Environment: {settings.ENVIRONMENT}")
         print(f"🤖 Agent: {settings.AGENT_NAME}")
         print(f"🏥 Company: {settings.COMPANY_NAME}")
-        print(f"🧠 Agent Mode: {settings.AGENT_MODE}")
-        orchestrator_type = "LangGraph" if settings.USE_LANGGRAPH else "Legacy"
-        print(f"🔧 Orchestrator: {orchestrator_type}")
+        print(f"🔧 Orchestrator: LangGraph (LLM-based)")
         print(f"📋 API Docs: http://{settings.API_HOST}:{settings.API_PORT}/docs")
 
     @app.on_event("shutdown")

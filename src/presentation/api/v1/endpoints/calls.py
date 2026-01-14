@@ -16,7 +16,7 @@ from ..schemas.call_schema import (
     SessionDetailResponse
 )
 from ...dependencies import get_call_orchestrator, get_excel_service
-from .....agent.call_orchestrator import CallOrchestrator
+from .....agent.langgraph_orchestrator import LangGraphOrchestrator
 from .....infrastructure.persistence.excel_service import ExcelOutboundService
 
 router = APIRouter(prefix="/calls", tags=["calls"])
@@ -105,7 +105,7 @@ async def get_call_statistics(
 @router.get("/{session_id}", response_model=SessionDetailResponse)
 async def get_call_session_details(
     session_id: str,
-    orchestrator: CallOrchestrator = Depends(get_call_orchestrator)
+    orchestrator: LangGraphOrchestrator = Depends(get_call_orchestrator)
 ):
     """
     Get detailed call session information
@@ -167,7 +167,7 @@ async def get_call_session_details(
 async def update_call_status(
     session_id: str,
     request: CallStatusUpdateRequest,
-    orchestrator: CallOrchestrator = Depends(get_call_orchestrator),
+    orchestrator: LangGraphOrchestrator = Depends(get_call_orchestrator),
     excel_service: ExcelOutboundService = Depends(get_excel_service)
 ):
     """

@@ -28,6 +28,9 @@ class ConversationState(TypedDict):
     current_phase: str
     """Current conversation phase (e.g., GREETING, IDENTIFICATION, etc.)"""
     
+    llm_system_prompt: str
+    """Latest system prompt built for the LLM (persisted across nodes)"""
+    
     agent_name: str
     """Agent name (e.g., María, Carlos)"""
     
@@ -56,12 +59,22 @@ class ConversationState(TypedDict):
     
     phone: Optional[str]
     """Patient phone number"""
-    
+
     relationship_to_patient: Optional[str]
     """Relationship of caller to patient (if not the patient)"""
-    
+
     caller_name: Optional[str]
     """Name of the person calling (if not the patient)"""
+
+    # ========== Contact Data (for outbound calls with family/friends) ==========
+    contact_name: Optional[str]
+    """Name of contact person (for outbound calls when not speaking with patient directly)"""
+
+    contact_relationship: Optional[str]
+    """Relationship of contact to patient (hermano, esposa, hijo, etc.)"""
+
+    contact_age: Optional[str]
+    """Age of contact (required if contact_relationship is hijo/nieto to validate >= 18)"""
     
     # ========== Datos del Servicio ==========
     service_type: Optional[str]
@@ -72,7 +85,10 @@ class ConversationState(TypedDict):
     
     appointment_dates: List[str]
     """List of appointment dates (can be multiple for recurring services)"""
-    
+
+    appointment_date: Optional[str]
+    """Single appointment date (for simple single-date services)"""
+
     appointment_time: Optional[str]
     """Appointment time (HH:MM format)"""
     
@@ -162,7 +178,42 @@ class ConversationState(TypedDict):
     # ========== Observaciones ==========
     observations: List[str]
     """General observations about the call"""
-    
+
+    special_observation: Optional[str]
+    """Special observation or request made during the call (e.g., request different driver, need wheelchair accessible vehicle)"""
+
+    # ========== Análisis Emocional (Integración Ligera) ==========
+    emotional_memory: List[Dict[str, Any]]
+    """
+    Historial de estados emocionales por turno.
+    Cada entrada: {
+        "turn": int,
+        "sentiment": str,  # Frustración | Incertidumbre | Neutro | Euforia
+        "conflict_level": str,  # Bajo | Medio | Alto
+        "timestamp": str
+    }
+    """
+
+    current_sentiment: Optional[str]
+    """Sentimiento actual del usuario: Frustración | Incertidumbre | Neutro | Euforia"""
+
+    current_conflict_level: Optional[str]
+    """Nivel de conflicto actual: Bajo | Medio | Alto"""
+
+    personality_mode: str
+    """
+    Modo de personalidad del agente: Balanceado (default) | Simplificado | Técnico
+    - Balanceado: Conversación natural estándar
+    - Simplificado: Lenguaje más simple, evita tecnicismos (se activa con confusión repetida)
+    - Técnico: Detalles específicos, respuestas más informativas
+    """
+
+    emotional_validation_required: bool
+    """Si el usuario requiere validación emocional antes de continuar con datos"""
+
+    validation_attempt_count: int
+    """Número de intentos de re-generación de respuesta (límite: 2)"""
+
     # ========== Control de Flujo ==========
     agent_response: str
     """Last agent response text"""
@@ -175,6 +226,9 @@ class ConversationState(TypedDict):
     
     requires_human_review: bool
     """Whether conversation requires human review"""
+    
+    greeting_done: bool
+    """Whether the initial greeting/legal notice was already delivered (outbound)"""
     
     # ========== Metadata ==========
     created_at: str

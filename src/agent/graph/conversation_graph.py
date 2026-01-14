@@ -13,28 +13,29 @@ from src.agent.graph.nodes import (
     special_case_handler,
     excel_writer
 )
-from src.agent.graph.edges import should_escalate, route_after_llm, should_continue
+from src.agent.graph.edges import should_escalate, route_after_llm
 
 def create_conversation_graph():
     """
     Create the LangGraph StateGraph for conversation management.
-    
-    Graph Flow:
+
+    IMPORTANTE: Cada invocación del grafo procesa UN mensaje y termina.
+    El orquestador maneja los turnos múltiples.
+
+    Graph Flow (per turn):
     START -> input_processor -> policy_engine -> eligibility_checker -> escalation_detector
         -> [conditional: escalate?]
             -> YES: special_case_handler -> END
-            -> NO: context_builder -> llm_responder -> response_processor 
+            -> NO: context_builder -> llm_responder -> response_processor
                 -> [conditional: route_after_llm]
                     -> END: excel_writer -> END
                     -> special: special_case_handler -> END
-                    -> continue: state_updater -> [conditional: should_continue]
-                        -> END: END
-                        -> continue: input_processor (loop)
+                    -> continue: state_updater -> END (no loop!)
     """
-    
+
     # Create graph
     graph = StateGraph(ConversationState)
-    
+
     # Add all nodes
     graph.add_node("input_processor", input_processor)
     graph.add_node("policy_engine", policy_engine_node)
@@ -46,14 +47,14 @@ def create_conversation_graph():
     graph.add_node("state_updater", state_updater)
     graph.add_node("special_case_handler", special_case_handler)
     graph.add_node("excel_writer", excel_writer)
-    
+
     # Define edges (linear flow with conditionals)
     graph.set_entry_point("input_processor")
-    
+
     graph.add_edge("input_processor", "policy_engine")
     graph.add_edge("policy_engine", "eligibility_checker")
     graph.add_edge("eligibility_checker", "escalation_detector")
-    
+
     # Conditional: Check if escalation required
     graph.add_conditional_edges(
         "escalation_detector",
@@ -63,11 +64,11 @@ def create_conversation_graph():
             "context_builder": "context_builder"
         }
     )
-    
+
     # Normal flow continues through LLM
     graph.add_edge("context_builder", "llm_responder")
     graph.add_edge("llm_responder", "response_processor")
-    
+
     # Conditional: Route after LLM
     graph.add_conditional_edges(
         "response_processor",
@@ -78,19 +79,12 @@ def create_conversation_graph():
             "state_updater": "state_updater"
         }
     )
-    
-    # Conditional: Check if should continue conversation
-    graph.add_conditional_edges(
-        "state_updater",
-        should_continue,
-        {
-            "END": END,
-            "input_processor": "input_processor"
-        }
-    )
-    
-    # End paths
+
+    # Final: All paths go to END (no loops!)
+    # Each invocation processes ONE message and terminates
     graph.add_edge("special_case_handler", END)
     graph.add_edge("excel_writer", END)
-    
+    graph.add_edge("state_updater", END)  # NO loop back to input_processor!
+
+    # Compile graph (LangGraph's API no longer accepts config override)
     return graph.compile()
