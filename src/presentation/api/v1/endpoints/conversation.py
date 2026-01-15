@@ -34,7 +34,7 @@ async def unified_conversation(
     **Response:**
     - `SESSION_ID`: Session identifier (save for tracking)
     - `AGENT_RESPONSE`: Agent's response message (ready to play/display)
-    - `FIN`: True if conversation ended, False if conversation continues
+    - `FIN`: `"true"` if conversation ended, `"false"` if conversation continues
 
     **Usage Examples:**
 
@@ -83,12 +83,12 @@ async def unified_conversation(
         request = UnifiedConversationRequest(**body)
 
         print(f"\n{'='*80}")
-        print(f"🎯 [ENDPOINT] MENSAJE RECIBIDO")
+        print(f" [ENDPOINT] MENSAJE RECIBIDO")
         print(f"{'='*80}")
-        print(f"   📞 Teléfono: {request.PATIENT_PHONE}")
-        print(f"   💬 Mensaje: '{request.MESSAGE}'")
-        print(f"   📍 Dirección: {'OUTBOUND (llamamos)' if request.IS_OUTBOUND else 'INBOUND (paciente llama)'}")
-        print(f"   👤 Agente: {request.AGENT_NAME}")
+        print(f"    Teléfono: {request.PATIENT_PHONE}")
+        print(f"    Mensaje: '{request.MESSAGE}'")
+        print(f"    Dirección: {'OUTBOUND (llamamos)' if request.IS_OUTBOUND else 'INBOUND (paciente llama)'}")
+        print(f"    Agente: {request.AGENT_NAME}")
         print(f"{'='*80}\n")
 
         # Get orchestrator from app state
@@ -100,7 +100,7 @@ async def unified_conversation(
             )
 
         # Process unified message (handles session creation + messaging)
-        print(f"🔄 [ENDPOINT] Enviando a LangGraph Orchestrator...")
+        print(f" [ENDPOINT] Enviando a LangGraph Orchestrator...")
         response = await orchestrator.process_unified_message(
             patient_phone=request.PATIENT_PHONE,
             user_message=request.MESSAGE,
@@ -108,14 +108,14 @@ async def unified_conversation(
             agent_name=request.AGENT_NAME
         )
 
-        print(f"\n✅ [ENDPOINT] RESPUESTA LISTA")
-        print(f"   🤖 Respuesta: '{response.get('agent_response', '')[:100]}...'")
-        print(f"   📊 Fase: {response.get('conversation_phase')}")
+        print(f"\n [ENDPOINT] RESPUESTA LISTA")
+        print(f"   Respuesta: '{response.get('agent_response', '')[:100]}...'")
+        print(f"    Fase: {response.get('conversation_phase')}")
         print(f"{'='*80}\n")
 
         # Map response to new schema (UPPERCASE fields)
-        # FIN = True if conversation_phase is "END"
-        fin = response.get('conversation_phase') == 'END'
+        # FIN = "true" if conversation_phase is "END"
+        fin = "true" if response.get('conversation_phase') == 'END' else "false"
 
         return UnifiedConversationResponse(
             SESSION_ID=response.get('session_id'),

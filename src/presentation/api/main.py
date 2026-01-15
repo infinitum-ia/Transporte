@@ -57,13 +57,13 @@ def create_app() -> FastAPI:
                     excel_path=settings.EXCEL_PATH,
                     backup_folder=settings.EXCEL_BACKUP_FOLDER
                 )
-                print(f"📊 Excel service initialized: {settings.EXCEL_PATH}")
+                print(f" Excel service initialized: {settings.EXCEL_PATH}")
             except Exception as e:
-                print(f"⚠️  Warning: Could not initialize Excel service: {str(e)}")
+                print(f"  Warning: Could not initialize Excel service: {str(e)}")
                 excel_service = None
         else:
             if settings.EXCEL_PATH:
-                print(f"⚠️  Warning: Excel file not found at {settings.EXCEL_PATH}")
+                print(f"  Warning: Excel file not found at {settings.EXCEL_PATH}")
 
         app.state.excel_service = excel_service
 
@@ -79,12 +79,12 @@ def create_app() -> FastAPI:
             excel_service=excel_service
         )
 
-        print(f"🚀 {settings.APP_NAME} v{settings.APP_VERSION} starting...")
-        print(f"📍 Environment: {settings.ENVIRONMENT}")
-        print(f"🤖 Agent: {settings.AGENT_NAME}")
-        print(f"🏥 Company: {settings.COMPANY_NAME}")
-        print(f"🔧 Orchestrator: LangGraph (LLM-based)")
-        print(f"📋 API Docs: http://{settings.API_HOST}:{settings.API_PORT}/docs")
+        print(f" {settings.APP_NAME} v{settings.APP_VERSION} starting...")
+        print(f" Environment: {settings.ENVIRONMENT}")
+        print(f" Agent: {settings.AGENT_NAME}")
+        print(f" Company: {settings.COMPANY_NAME}")
+        print(f" Orchestrator: LangGraph (LLM-based)")
+        print(f" API Docs: http://{settings.API_HOST}:{settings.API_PORT}/docs")
 
     @app.on_event("shutdown")
     async def shutdown_event():
@@ -92,7 +92,7 @@ def create_app() -> FastAPI:
         redis_client = getattr(app.state, "redis", None)
         if redis_client is not None:
             await redis_client.close()
-        print(f"👋 {settings.APP_NAME} shutting down...")
+        print(f" {settings.APP_NAME} shutting down...")
 
     return app
 

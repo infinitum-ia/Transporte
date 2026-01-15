@@ -1,4 +1,4 @@
-# Conversation graph using LangGraph StateGraph
+# Conversation graph using LangGraph StateGraph - Con Supervisor Robusto
 from langgraph.graph import StateGraph, END
 from src.agent.graph.state import ConversationState
 from src.agent.graph.nodes import (
@@ -11,47 +11,62 @@ from src.agent.graph.nodes import (
     response_processor,
     state_updater,
     special_case_handler,
-    excel_writer
+    excel_writer,
+    # Nuevos nodos del Supervisor Robusto
+    pre_analyzer_node,
+    context_enricher_node,
+    response_validator_node,
 )
 from src.agent.graph.edges import should_escalate, route_after_llm
+
 
 def create_conversation_graph():
     """
     Create the LangGraph StateGraph for conversation management.
 
-    IMPORTANTE: Cada invocación del grafo procesa UN mensaje y termina.
-    El orquestador maneja los turnos múltiples.
+    ARQUITECTURA SUPERVISOR ROBUSTO:
 
     Graph Flow (per turn):
-    START -> input_processor -> policy_engine -> eligibility_checker -> escalation_detector
-        -> [conditional: escalate?]
-            -> YES: special_case_handler -> END
-            -> NO: context_builder -> llm_responder -> response_processor
-                -> [conditional: route_after_llm]
-                    -> END: excel_writer -> END
-                    -> special: special_case_handler -> END
-                    -> continue: state_updater -> END (no loop!)
+    START -> input_processor
+          -> pre_analyzer (detecta emoción/intención)
+          -> context_enricher (inyecta políticas/casos)
+          -> policy_engine -> eligibility_checker -> escalation_detector
+          -> [conditional: escalate?]
+              -> YES: special_case_handler -> END
+              -> NO: context_builder -> llm_responder
+                  -> response_validator (corrige errores)
+                  -> response_processor
+                  -> [conditional: route_after_llm]
+                      -> END: excel_writer -> END
+                      -> special: special_case_handler -> END
+                      -> continue: state_updater -> END
     """
 
     # Create graph
     graph = StateGraph(ConversationState)
-
-    # Add all nodes
+    print("===============COMPILANDO GRAFO============")
+    # Add all nodes (incluyendo Supervisor Robusto)
     graph.add_node("input_processor", input_processor)
+    graph.add_node("pre_analyzer", pre_analyzer_node)  # NUEVO
+    graph.add_node("context_enricher", context_enricher_node)  # NUEVO
     graph.add_node("policy_engine", policy_engine_node)
     graph.add_node("eligibility_checker", eligibility_checker)
     graph.add_node("escalation_detector", escalation_detector)
     graph.add_node("context_builder", context_builder)
     graph.add_node("llm_responder", llm_responder)
+    graph.add_node("response_validator", response_validator_node)  # NUEVO
     graph.add_node("response_processor", response_processor)
     graph.add_node("state_updater", state_updater)
     graph.add_node("special_case_handler", special_case_handler)
     graph.add_node("excel_writer", excel_writer)
 
-    # Define edges (linear flow with conditionals)
+    # Define edges (linear flow con Supervisor Robusto)
     graph.set_entry_point("input_processor")
 
-    graph.add_edge("input_processor", "policy_engine")
+    # Flujo con Supervisor: pre_analyzer y context_enricher después de input
+    graph.add_edge("input_processor", "pre_analyzer")  # NUEVO
+    graph.add_edge("pre_analyzer", "context_enricher")  # NUEVO
+    graph.add_edge("context_enricher", "policy_engine")  # MODIFICADO
     graph.add_edge("policy_engine", "eligibility_checker")
     graph.add_edge("eligibility_checker", "escalation_detector")
 
@@ -67,7 +82,8 @@ def create_conversation_graph():
 
     # Normal flow continues through LLM
     graph.add_edge("context_builder", "llm_responder")
-    graph.add_edge("llm_responder", "response_processor")
+    graph.add_edge("llm_responder", "response_validator")  # NUEVO: Validar antes de procesar
+    graph.add_edge("response_validator", "response_processor")  # MODIFICADO
 
     # Conditional: Route after LLM
     graph.add_conditional_edges(
@@ -81,10 +97,9 @@ def create_conversation_graph():
     )
 
     # Final: All paths go to END (no loops!)
-    # Each invocation processes ONE message and terminates
     graph.add_edge("special_case_handler", END)
     graph.add_edge("excel_writer", END)
-    graph.add_edge("state_updater", END)  # NO loop back to input_processor!
+    graph.add_edge("state_updater", END)
 
-    # Compile graph (LangGraph's API no longer accepts config override)
+    # Compile graph
     return graph.compile()

@@ -46,7 +46,12 @@ class LangGraphOrchestrator:
         excel_row_index: int = None
     ) -> Dict[str, Any]:
         """
-        Process a user message through the LangGraph.
+        Carga la sesión 
+        Agrega el mensaje del usuario a la lista de mensaje
+        Invoca Langgraph que decide la siguiente fase y genera la respuesta
+        actualiza el estado
+        guarda el estado en redis o memoria
+        devuelve el diccionario
         
         Args:
             session_id: Unique session identifier
@@ -145,7 +150,15 @@ class LangGraphOrchestrator:
         excel_row_index: int = None,
         patient_phone: str | None = None
     ) -> str:
-        """Create a new session and (for outbound) preload data from Excel if available"""
+        """Create a new session and (for outbound) preload data from Excel if available
+            Genera un ID unico con uuid4.hex
+            Busca los datos del paciente en un excel
+            crea un objeto conversaciónstate con el id, telefono y los demas datos
+            asocia el numero de telefono a la sesión
+            devuelve un id
+        
+        
+        """
         session_id = str(uuid.uuid4())
 
         state = create_initial_state(
@@ -362,7 +375,7 @@ class LangGraphOrchestrator:
         processed_message = user_message
 
         if is_outbound and turn_count == 0 and user_message.upper() in ["START", "INICIO", "COMENZAR"]:
-            processed_message = "[INTERNAL: This is an outbound call. You are calling the patient. Start with your greeting and ask if you're speaking with the patient.]"
+            processed_message = "[INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the patient.]"
             print(f"🎯 [ORCHESTRATOR] Primera llamada OUTBOUND - mensaje automático generado")
 
         print(f"\n🚀 [ORCHESTRATOR] Ejecutando LangGraph...")

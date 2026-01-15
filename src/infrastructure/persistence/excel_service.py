@@ -56,7 +56,7 @@ class PatientServiceData(BaseModel):
     def validate_phone(cls, v):
         """Validate phone number has 10 digits"""
         phone_str = str(v).strip()
-        if not phone_str.isdigit() or len(phone_str) != 10:
+        if not phone_str.isdigit() or len(phone_str) != 12:
             raise ValueError(f"Phone number must be 10 digits, got: {v}")
         return phone_str
 

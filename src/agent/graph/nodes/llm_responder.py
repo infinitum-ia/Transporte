@@ -138,46 +138,12 @@ def llm_responder(state: Dict[str, Any]) -> Dict[str, Any]:
             print(f"   {i}. [{role}]: {content}...")
         print(f"{'─'*80}\n")
 
-        # Guardar prompt completo a archivo para inspección
-        try:
-            import datetime
-            timestamp = datetime.datetime.now().strftime("%H%M%S")
-            prompt_file = f"C:\\Users\\Administrador\\Documents\\Transporte\\prompt_debug_{timestamp}.txt"
-            with open(prompt_file, 'w', encoding='utf-8') as f:
-                f.write("="*100 + "\n")
-                f.write("PROMPT SYSTEM COMPLETO\n")
-                f.write("="*100 + "\n\n")
-                f.write(system_prompt)
-                f.write("\n\n" + "="*100 + "\n")
-                f.write(f"HISTORIAL DE CONVERSACIÓN ({len(messages)} mensajes)\n")
-                f.write("="*100 + "\n\n")
-                for i, msg in enumerate(messages, 1):
-                    if isinstance(msg, dict):
-                        role = msg.get("role", "unknown")
-                        content = msg.get("content", "")
-                    elif hasattr(msg, "type"):
-                        role = msg.type
-                        content = msg.content if hasattr(msg, "content") else str(msg)
-                    else:
-                        role = "unknown"
-                        content = str(msg)
-                    f.write(f"Mensaje {i} [{role}]:\n{content}\n\n")
-                f.write("="*100 + "\n")
-                f.write("STATE INFORMACIÓN\n")
-                f.write("="*100 + "\n\n")
-                f.write(f"Session ID: {state.get('session_id', 'unknown')}\n")
-                f.write(f"Fase: {state.get('current_phase', 'N/A')}\n")
-                f.write(f"Turno: {state.get('turn_count', 0)}\n")
-                f.write(f"Contact name en state: {state.get('contact_name', 'N/A')}\n")
-                f.write(f"Contact relationship en state: {state.get('contact_relationship', 'N/A')}\n")
-                f.write(f"Contact age en state: {state.get('contact_age', 'N/A')}\n")
-            print(f"💾 Prompt guardado en: {prompt_file}")
-        except Exception as e:
-            logger.warning(f"No se pudo guardar prompt debug: {e}")
-
         print(f"⏳ Esperando respuesta del LLM...")
+
+        print("==========LO QUE SE MANDA==========================",llm_messages)
         response = llm.invoke(llm_messages)
         llm_output = response.content
+        print("=======================LO QUE DEVUELVE=======================", llm_output)
         state["_llm_raw_output"] = llm_output
         print(f"✅ Respuesta recibida del LLM\n")
 

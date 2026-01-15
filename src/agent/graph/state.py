@@ -214,6 +214,34 @@ class ConversationState(TypedDict):
     validation_attempt_count: int
     """Número de intentos de re-generación de respuesta (límite: 2)"""
 
+    # ========== Supervisor Robusto (Pre-Analyzer + Context Enricher) ==========
+    user_emotion: Optional[str]
+    """Emoción detectada del usuario: frustración | confusión | neutro | positivo"""
+
+    user_emotion_level: Optional[str]
+    """Nivel de emoción: bajo | medio | alto"""
+
+    user_intent: Optional[str]
+    """Intención detectada: confirmar | cambiar | queja | pregunta | cancelar | saludo"""
+
+    user_topic: Optional[str]
+    """Tema principal: horario | direccion | conductor | fecha | servicio | otro"""
+
+    needs_empathy: bool
+    """Si el usuario requiere respuesta empática"""
+
+    policy_keywords: List[str]
+    """Keywords de políticas detectadas por el Pre-Analyzer"""
+
+    relevant_policies: List[str]
+    """Políticas aplicables inyectadas por el Context Enricher"""
+
+    case_example: Optional[str]
+    """Ejemplo de caso similar para Few-Shot prompting"""
+
+    tone_instruction: Optional[str]
+    """Instrucción de ajuste de tono según emoción detectada"""
+
     # ========== Control de Flujo ==========
     agent_response: str
     """Last agent response text"""

@@ -202,6 +202,17 @@ def create_initial_state(
         "emotional_validation_required": False,
         "validation_attempt_count": 0,
 
+        # Supervisor Robusto (Pre-Analyzer + Context Enricher)
+        "user_emotion": "neutro",
+        "user_emotion_level": "bajo",
+        "user_intent": "otro",
+        "user_topic": "otro",
+        "needs_empathy": False,
+        "policy_keywords": [],
+        "relevant_policies": [],
+        "case_example": None,
+        "tone_instruction": "",
+
         # Control de flujo
         "agent_response": "",
         "next_phase": None,
