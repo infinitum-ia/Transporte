@@ -46,8 +46,6 @@ class Settings(BaseSettings):
     AGENT_NAME: str = "María"
     COMPANY_NAME: str = "Transpormax"
     EPS_NAME: str = "Cosalud"
-    # Agent backend: "mock" (no LLM) or "llm" (OpenAI via LangChain)
-    AGENT_MODE: str = "mock"
     MAX_CONVERSATION_TURNS: int = 50
     SESSION_TTL_SECONDS: int = 3600
 
@@ -66,7 +64,8 @@ class Settings(BaseSettings):
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "case_sensitive": True
+        "case_sensitive": True,
+        "extra": "ignore"  # Ignore extra fields from .env (for backward compatibility)
     }
 
 

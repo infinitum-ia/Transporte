@@ -46,7 +46,7 @@ test-bdd:
 	pytest tests/bdd/ -v
 
 run:
-	uvicorn src.presentation.api.main:app --reload --host 0.0.0.0 --port 8081
+	uvicorn src.presentation.api.main:app --host 0.0.0.0 --port 8081
 
 docker-up:
 	docker-compose up -d

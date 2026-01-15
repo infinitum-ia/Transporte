@@ -16,7 +16,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 # API Configuration
-API_BASE_URL = "http://localhost:8081/api/v1"
+API_BASE_URL = "http://localhost:8000/api/v1"
 
 # Page configuration
 st.set_page_config(
@@ -96,16 +96,18 @@ def init_session_state():
         st.session_state.conversation_phase = None
     if "patient_info" not in st.session_state:
         st.session_state.patient_info = {}
+    if "conversation_ended" not in st.session_state:
+        st.session_state.conversation_ended = False
 
 
 def send_message_unified(patient_phone: str, message: str, is_outbound: bool, agent_name: str = "María") -> Dict[str, Any]:
     """Send a message using the unified endpoint"""
     try:
         payload = {
-            "patient_phone": patient_phone,
-            "message": message,
-            "is_outbound": is_outbound,
-            "agent_name": agent_name
+            "PATIENT_PHONE": patient_phone,
+            "MESSAGE": message,
+            "IS_OUTBOUND": is_outbound,
+            "AGENT_NAME": agent_name
         }
 
         response = requests.post(
@@ -197,14 +199,14 @@ def main():
 
                     if result["success"]:
                         response_data = result["data"]
-                        st.session_state.session_id = response_data["session_id"]
+                        st.session_state.session_id = response_data["SESSION_ID"]
                         st.session_state.patient_phone = patient_phone
                         st.session_state.call_type = "OUTBOUND" if is_outbound else "INBOUND"
-                        st.session_state.conversation_phase = response_data.get("conversation_phase")
                         st.session_state.messages = []
+                        st.session_state.conversation_ended = response_data.get("FIN", False)
 
                         # Add the agent's initial response
-                        agent_response = response_data.get("agent_response", "")
+                        agent_response = response_data.get("AGENT_RESPONSE", "")
                         if agent_response:
                             st.session_state.messages.append({
                                 "role": "agent",
@@ -212,12 +214,7 @@ def main():
                                 "timestamp": datetime.now().strftime("%H:%M:%S")
                             })
 
-                        st.session_state.patient_info = {
-                            "patient_name": response_data.get("patient_name"),
-                            "service_type": response_data.get("service_type")
-                        }
-
-                        st.success(f"✅ Conversación iniciada: {response_data['session_id'][:8]}...")
+                        st.success(f"✅ Conversación iniciada: {response_data['SESSION_ID'][:8]}...")
                         st.rerun()
                     else:
                         st.error(f"❌ Error: {result['error']}")
@@ -232,6 +229,7 @@ def main():
                 st.session_state.call_type = None
                 st.session_state.conversation_phase = None
                 st.session_state.patient_info = {}
+                st.session_state.conversation_ended = False
                 st.rerun()
 
         # Session info
@@ -242,13 +240,12 @@ def main():
             st.write(f"**Session ID:** `{st.session_state.session_id[:16]}...`")
             st.write(f"**Teléfono:** {st.session_state.patient_phone or 'N/A'}")
             st.write(f"**Tipo:** {st.session_state.call_type or 'N/A'}")
-            st.write(f"**Fase:** {st.session_state.conversation_phase or 'N/A'}")
 
-            if st.session_state.patient_info.get('patient_name'):
-                st.write(f"**Paciente:** {st.session_state.patient_info['patient_name']}")
-
-            if st.session_state.patient_info.get('service_type'):
-                st.write(f"**Servicio:** {st.session_state.patient_info['service_type']}")
+            # Show conversation status
+            if st.session_state.conversation_ended:
+                st.write("**Estado:** 🔴 FINALIZADA")
+            else:
+                st.write("**Estado:** 🟢 ACTIVA")
 
     # Main chat area
     if not st.session_state.session_id:
@@ -287,13 +284,24 @@ def main():
     else:
         # Display session banner
         call_type_display = "📱 SALIENTE" if st.session_state.call_type == "OUTBOUND" else "📞 ENTRANTE"
-        st.markdown(f"""
-        <div class="session-info">
-            <strong>Sesión Activa:</strong> {st.session_state.session_id[:16]}... |
-            <strong>Tipo:</strong> {call_type_display} |
-            <strong>Fase:</strong> {st.session_state.conversation_phase or 'N/A'}
-        </div>
-        """, unsafe_allow_html=True)
+        status_display = "🔴 FINALIZADA" if st.session_state.conversation_ended else "🟢 ACTIVA"
+
+        # Show different banner if conversation ended
+        if st.session_state.conversation_ended:
+            st.markdown(f"""
+            <div class="success-box">
+                <strong>✅ Conversación Finalizada</strong><br>
+                La llamada ha terminado. Puede iniciar una nueva conversación desde el panel lateral.
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="session-info">
+                <strong>Sesión Activa:</strong> {st.session_state.session_id[:16]}... |
+                <strong>Tipo:</strong> {call_type_display} |
+                <strong>Estado:</strong> {status_display}
+            </div>
+            """, unsafe_allow_html=True)
 
         # Display conversation history
         chat_container = st.container()
@@ -306,71 +314,67 @@ def main():
                     msg.get("timestamp")
                 )
 
-        # Message input
+        # Message input (only if conversation hasn't ended)
         st.divider()
 
-        col1, col2 = st.columns([5, 1])
+        if st.session_state.conversation_ended:
+            st.info("💡 Esta conversación ha finalizado. Inicie una nueva conversación desde el panel lateral.")
+        else:
+            col1, col2 = st.columns([5, 1])
 
-        with col1:
-            user_input = st.text_input(
-                "Mensaje",
-                placeholder="Escribe tu mensaje aquí...",
-                key="user_input",
-                label_visibility="collapsed"
-            )
-
-        with col2:
-            send_button = st.button("📤 Enviar", use_container_width=True, type="primary")
-
-        # Send message
-        if send_button and user_input.strip():
-            # Add user message to history
-            st.session_state.messages.append({
-                "role": "user",
-                "content": user_input,
-                "timestamp": datetime.now().strftime("%H:%M:%S")
-            })
-
-            # Send to API using unified endpoint
-            with st.spinner("Pensando..."):
-                is_outbound = st.session_state.call_type == "OUTBOUND"
-                result = send_message_unified(
-                    st.session_state.patient_phone,
-                    user_input,
-                    is_outbound,
-                    agent_name
+            with col1:
+                user_input = st.text_input(
+                    "Mensaje",
+                    placeholder="Escribe tu mensaje aquí...",
+                    key="user_input",
+                    label_visibility="collapsed"
                 )
 
-                if result["success"]:
-                    response_data = result["data"]
-                    agent_response = response_data.get("agent_response", "")
+            with col2:
+                send_button = st.button("📤 Enviar", use_container_width=True, type="primary")
 
-                    # Add agent response to history
-                    st.session_state.messages.append({
-                        "role": "agent",
-                        "content": agent_response,
-                        "timestamp": datetime.now().strftime("%H:%M:%S")
-                    })
+        # Send message (only if conversation hasn't ended)
+        if not st.session_state.conversation_ended:
+            if 'send_button' in locals() and send_button and user_input.strip():
+                # Add user message to history
+                st.session_state.messages.append({
+                    "role": "user",
+                    "content": user_input,
+                    "timestamp": datetime.now().strftime("%H:%M:%S")
+                })
 
-                    # Update conversation phase
-                    st.session_state.conversation_phase = response_data.get("conversation_phase")
+                # Send to API using unified endpoint
+                with st.spinner("Pensando..."):
+                    is_outbound = st.session_state.call_type == "OUTBOUND"
+                    result = send_message_unified(
+                        st.session_state.patient_phone,
+                        user_input,
+                        is_outbound,
+                        agent_name
+                    )
 
-                    # Update patient info if available
-                    if response_data.get("patient_name"):
-                        st.session_state.patient_info["patient_name"] = response_data["patient_name"]
-                    if response_data.get("service_type"):
-                        st.session_state.patient_info["service_type"] = response_data["service_type"]
+                    if result["success"]:
+                        response_data = result["data"]
+                        agent_response = response_data.get("AGENT_RESPONSE", "")
 
-                    # Check for escalation
-                    if response_data.get("requires_escalation"):
-                        st.warning(f"⚠️ Escalamiento requerido: {response_data.get('metadata', {}).get('escalation_reason', 'N/A')}")
+                        # Add agent response to history
+                        st.session_state.messages.append({
+                            "role": "agent",
+                            "content": agent_response,
+                            "timestamp": datetime.now().strftime("%H:%M:%S")
+                        })
 
-                    st.rerun()
-                else:
-                    st.error(f"❌ Error: {result['error']}")
+                        # Check if conversation ended (FIN=True)
+                        if response_data.get("FIN", False):
+                            st.session_state.conversation_ended = True
+                            st.success("✅ La conversación ha finalizado.")
 
-        # Quick actions
-        if st.session_state.call_type == "INBOUND":
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Error: {result['error']}")
+
+        # Quick actions (only if conversation hasn't ended and is INBOUND)
+        if st.session_state.call_type == "INBOUND" and not st.session_state.conversation_ended:
             st.divider()
             st.caption("💡 Ejemplos de mensajes:")
 

@@ -19,10 +19,10 @@ def test_unified_endpoint():
     print("-" * 60)
 
     payload1 = {
-        "patient_phone": "3001234567",
-        "message": "START",
-        "is_outbound": True,
-        "agent_name": "María"
+        "PATIENT_PHONE": "3001234567",
+        "MESSAGE": "START",
+        "IS_OUTBOUND": True,
+        "AGENT_NAME": "María"
     }
 
     print(f"Request: POST {BASE_URL}/conversation/unified")

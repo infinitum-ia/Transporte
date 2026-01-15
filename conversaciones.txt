@@ -1,0 +1,168 @@
+🤖 Agente María - 14:45:00
+Buenos días, ¿tengo el gusto de hablar con José Luis Martínez?
+👤 Usuario - 14:45:14
+si, habla con el. con quien tengo el gusto?
+🤖 Agente María - 14:45:22
+Soy María de Transpormax, empresa autorizada por Cosalud. Llamo para confirmar el transporte. ¿Con quién tengo el gusto?
+👤 Usuario - 14:45:47
+Ya te dije que soy Jose luis Martinez
+🤖 Agente María - 14:45:54
+Perfecto, José Luis Martínez. Soy María de Transpormax, empresa autorizada por Cosalud. Le llamo para confirmar su transporte Diálisis que tiene programado. Le informo que esta llamada está siendo grabada para garantizar calidad.
+👤 Usuario - 14:46:17
+Claro, que hora tienes registrada ahí corazón?
+🤖 Agente María - 14:46:25
+Tengo programado el servicio de José Luis Martínez para diálisis a las 06:00. ¿Puedo confirmar que sigue siendo correcto?
+👤 Usuario - 14:46:46
+me pueden recoger media hora antes?
+🤖 Agente María - 14:46:54
+Entiendo. Voy a registrar su solicitud: recoger a José Luis Martínez media hora antes. El coordinador lo revisará y, si es posible, lo ajustará. Si hay algún inconveniente, nos comunicaremos con usted.
+👤 Usuario - 14:47:08
+Claro, te lo agradezco
+🤖 Agente María - 14:47:16
+Con mucho gusto. Para confirmar, queda registrado: Diálisis el a las 06:00. ¿Tiene alguna otra pregunta?
+👤 Usuario - 14:47:27
+no, solo eso. muchas gracias
+🤖 Agente María - 14:47:33
+Perfecto. Gracias por su tiempo y confianza. ¡Que tenga un excelente día!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Conversación 3 
+
+
+🤖 Agente María - 15:03:23
+Buenos días, ¿tengo el gusto de hablar con Álvaro José Castro?
+👤 Usuario - 15:03:34
+Si, claro, habla con él
+🤖 Agente María - 15:03:43
+Perfecto, Álvaro José Castro. Soy María de Transpormax, empresa autorizada por Cosalud. Le llamo para confirmar su transporte Cita Especialista que tiene programado. Le informo que esta llamada está siendo grabada para garantizar calidad.
+👤 Usuario - 15:05:45
+Amiga, antes de confirmar, mira que yo tuve un percance con el ultimo conductor que me mandaron, el man, llegó algo alterado y iba como loco, porfa mandame un man que no sea loco que casi nos matamos. si no me mata la enfermedad me mata esos conductores
+🤖 Agente María - 15:05:53
+Entiendo completamente: tuviste un percance con el último conductor, llegó alterado y manejaba de manera peligrosa. Eso es inaceptable y lamento profundamente que hayas pasado por eso. Voy a registrar tu solicitud para que se asigne un conductor diferente y más tranquilo para tu servicio. ¿Es correcto?
+👤 Usuario - 15:06:10
+si, amiga te agradezco
+🤖 Agente María - 15:06:18
+Entiendo que estés agradecido. Estoy aquí para ayudarte en lo que necesites. ¿Hay algo más en lo que pueda asistirte?
+👤 Usuario - 15:06:42
+solo eso, recuerdame el dia de la cita y la hora
+🤖 Agente María - 15:06:49
+Claro, Álvaro. Tu cita con el especialista es el día de mañana a la 1:00 PM.
+👤 Usuario - 15:06:59
+gracias corazon
+🤖 Agente María - 15:07:08
+¡De nada, Álvaro! Estoy aquí para ayudarte. ¿Hay algo más en lo que pueda asistirte?
+👤 Usuario - 15:07:15
+solo eso
+🤖 Agente María - 15:07:28
+Entiendo que estés buscando una respuesta rápida. Si necesitas más información o ayuda con algo específico, aquí estoy para ayudarte.
+
+
+
+
+Sesión Activa: 47e9e1b1-a4d5-43... | Tipo: 📱 SALIENTE | Fase: IDENTIFICATION
+🤖 Agente María - 15:08:18
+Buenos días, ¿tengo el gusto de hablar con Emilce Rodríguez?
+👤 Usuario - 15:08:44
+Hola, buenos días si
+🤖 Agente María - 15:08:54
+Perfecto, ¿tengo el gusto de hablar con Emilce Rodríguez?
+👤 Usuario - 15:09:05
+si, con ella
+🤖 Agente María - 15:09:13
+Perfecto, Emilce Rodríguez. Soy María de Transpormax, empresa autorizada por Cosalud. Le llamo para confirmar su transporte Terapia que tiene programado. Le informo que esta llamada está siendo grabada para garantizar calidad.
+👤 Usuario - 15:09:24
+que dia es
+🤖 Agente María - 15:09:34
+Entiendo que necesite saber la fecha. Hoy es [fecha actual]. ¿Hay algo más en lo que pueda ayudarle?
+👤 Usuario - 15:10:04
+no, no la fecha de la cita, que dia tienes registrado?
+🤖 Agente María - 15:10:12
+Entiendo que necesite confirmar la fecha de la cita. La cita de Emilce Rodríguez está programada para el día de mañana a las 07:00. ¿Hay algo más en lo que pueda ayudarle?
+👤 Usuario - 15:11:01
+mira lo que pasa es que yo estoy en barranquilla, no creo que pueda ir o no sé si me pueden recoger acá
+🤖 Agente María - 15:11:09
+Entiendo que te sientas confundida sobre la ubicación. Estoy aquí para ayudarte. ¿Podrías confirmar si necesitas que te recojan en Barranquilla o si prefieres reprogramar la cita?
+👤 Usuario - 15:11:38
+si me pueden recoger aca seria genial, sino toca cancelarla
+🤖 Agente María - 15:11:49
+Entiendo que es importante para usted que lo recojan en este lugar. Permítame confirmar si podemos hacerlo en la Vereda El Carmen km 15. Un momento, por favor.
+👤 Usuario - 15:12:07
+si, claro
+🤖 Agente María - 15:12:17
+Buenos días, soy María de Transpormax, empresa autorizada por Cosalud. Le informo que esta llamada está siendo grabada para garantizar la calidad del servicio. ¿En qué puedo ayudarle hoy?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Conversación 2
+
+
+🤖 Agente María - 14:48:37
+Buenos días, ¿tengo el gusto de hablar con Valeria Ballerospina?
+👤 Usuario - 14:49:28
+hola, no pero ya se la comunico, con quien hablo ?
+🤖 Agente María - 14:49:35
+Soy María de Transpormax, empresa autorizada por Cosalud. Llamo para confirmar el transporte. ¿Con quién tengo el gusto?
+👤 Usuario - 14:50:38
+Con maria, pero ya le paso a Valeria
+🤖 Agente María - 14:50:44
+Con gusto, quedo en línea.
+👤 Usuario - 14:51:00
+Aló, habla Valeria
+🤖 Agente María - 14:51:09
+Perfecto, Sra. Valeria. Soy María de Transpormax, empresa autorizada por Cosalud. Le llamo para confirmar su transporte Terapia que tiene programado. Le informo que esta llamada está siendo grabada para garantizar calidad.
+👤 Usuario - 14:51:25
+si, claro.
+🤖 Agente María - 14:51:32
+Perfecto, Valeria Ballerospina. Queda confirmado su servicio de Terapia para el a las 08:00. ¿Hay algo más en lo que pueda ayudarle?
+👤 Usuario - 14:51:52
+oye, pero no me has dicho el dia, 8:00 de qué de la mañana o de la tarde?
+🤖 Agente María - 14:52:00
+Entiendo que necesite claridad sobre el horario. La cita de terapia está programada para las 08:00 de la mañana. ¿Tiene alguna otra pregunta sobre el servicio?
+👤 Usuario - 14:52:14
+que dia?
+🤖 Agente María - 14:52:22
+Para confirmar, queda registrado: Terapia el a las 08:00. ¿Tiene alguna otra pregunta sobre el servicio?
+👤 Usuario - 14:52:43
+si, me pueden cambiar el conductor?
+🤖 Agente María - 14:52:51
+Entiendo que prefiera otro conductor. Voy a registrar esta solicitud para evitar asignar al conductor anterior. El coordinador lo tendrá en cuenta. ¿Tiene alguna otra pregunta sobre el servicio?
+👤 Usuario - 14:53:01
+solo eso, gracias
+🤖 Agente María - 14:53:07
+Perfecto. Gracias por su tiempo y confianza. ¡Que tenga un excelente día!
+
