@@ -4,9 +4,47 @@ FastAPI Application
 Main application entry point for the Transformas Medical Transport Agent API.
 """
 import os
+import time
+import logging
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("request_timing")
+
+
+class RequestTimingMiddleware(BaseHTTPMiddleware):
+    """Middleware to log request timing information."""
+
+    async def dispatch(self, request: Request, call_next):
+        start_time = time.perf_counter()
+
+        # Log request start
+        logger.info(f"⏱️  REQUEST START | {request.method} {request.url.path}")
+
+        # Process request
+        response = await call_next(request)
+
+        # Calculate duration
+        end_time = time.perf_counter()
+        duration_ms = (end_time - start_time) * 1000
+
+        # Log request end with duration
+        logger.info(
+            f"⏱️  REQUEST END   | {request.method} {request.url.path} | "
+            f"Status: {response.status_code} | Duration: {duration_ms:.2f}ms"
+        )
+
+        # Add timing header to response
+        response.headers["X-Response-Time-Ms"] = f"{duration_ms:.2f}"
+
+        return response
 from ...infrastructure.config.settings import settings
 from ...agent.langgraph_orchestrator import LangGraphOrchestrator
 from ...infrastructure.persistence.redis.client import create_redis_client
@@ -40,6 +78,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Add request timing middleware
+    app.add_middleware(RequestTimingMiddleware)
 
     # Include routers
     app.include_router(health.router, prefix=settings.API_PREFIX)

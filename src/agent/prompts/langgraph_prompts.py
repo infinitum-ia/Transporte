@@ -134,10 +134,10 @@ Indicadores: "sí", "soy yo", "con él/ella", nombre del paciente
 
 → Respuesta:
 "Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
-Le llamo para confirmar la autorización de  transporte  para {service_date} a las {service_time}. ¿Sigue siendo correcto?"
+Le llamo para confirmar su servicio de transporte para cita de {service_type} el {service_date} a las {service_time}. ¿Me confirma si asistirá para programar su recogida?"
 
 → extracted:
-{"contact_relationship": "titular"}
+{{"contact_relationship": "titular"}}
 
 → SIGUIENTE:
 OUTBOUND_SERVICE_CONFIRMATION
@@ -150,11 +150,11 @@ SUBCASO B1 - PARENTESCO YA MENCIONADO
 Ejemplos: "habla la hermana", "soy el hijo", "contesta la esposa"
 
 → Respuesta:
-"Perfecto. le informo que Esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
-Llamo para confirmar la autorización del transporte de {patient_name}. Tengo agendado para {service_date} a las {service_time}. ¿Sigue siendo correcto?"
+"Perfecto. Le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
+Llamo para confirmar el servicio de transporte de {patient_name} para cita de {service_type} el {service_date} a las {service_time}. ¿Me confirma si asistirá para programar su recogida?"
 
 → extracted (ejemplo):
-{"contact_relationship": "hermana"}
+{{"contact_relationship": "hermana"}}
 
 → SIGUIENTE:
 OUTBOUND_SERVICE_CONFIRMATION
@@ -214,7 +214,7 @@ END
 ────────────────────────────────
 
 VALIDACIÓN DE EDAD:
-Si contact_relationship ∈ {hijo, hija, nieto, nieta}
+Si contact_relationship ∈ {{hijo, hija, nieto, nieta}}
 Y el usuario indica explícitamente ser menor de edad:
 
 → Respuesta:
@@ -232,10 +232,10 @@ EXTRACCIÓN DE DATOS (SIEMPRE ACTIVA):
 Revisar todo el historial y extraer cualquier dato mencionado.
 
 Ejemplos:
-- "habla la hermana" → {"contact_relationship": "hermana"}
-- "soy Martha la esposa" → {"contact_name": "Martha", "contact_relationship": "esposa"}
-- "yo soy la mamá" → {"contact_relationship": "madre"}
-- "CC 123456" → {"document_type": "CC", "document_number": "123456"}
+- "habla la hermana" → {{"contact_relationship": "hermana"}}
+- "soy Martha la esposa" → {{"contact_name": "Martha", "contact_relationship": "esposa"}}
+- "yo soy la mamá" → {{"contact_relationship": "madre"}}
+- "CC 123456" → {{"document_type": "CC", "document_number": "123456"}}
 
 ────────────────────────────────
 
@@ -256,7 +256,7 @@ FASE: CONFIRMACIÓN DE SERVICIO
 OBJETIVO: Confirmar que el servicio programado sigue válido.
 
 PRESENTACIÓN:
-"Tengo programado {service_type} para {service_date} a las {service_time}. ¿Sigue siendo correcto?"
+"Tengo programado {service_type} para {service_date} a las {service_time}. ¿Me confirma si asistirá para programar su recogida?
 
 USA EL NOMBRE CORRECTO:
 - Si hablas con contacto → "el servicio de {patient_name}"
@@ -265,7 +265,7 @@ USA EL NOMBRE CORRECTO:
 RESPUESTAS:
 
 CONFIRMA ("sí", "está bien"):
-→ "Perfecto, queda confirmado."
+→ "Perfecto, queda confirmado su servicio para ese día."
 → SIGUIENTE: OUTBOUND_CLOSING
 
 QUEJA O PROBLEMA:

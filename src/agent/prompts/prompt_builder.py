@@ -164,7 +164,9 @@ def _format_known_data_for_phase(known_data: Dict[str, Any], phase: Conversation
     always_relevant = ["patient_full_name", "contact_name", "contact_relationship"]
 
     phase_relevant = {
-        ConversationPhase.OUTBOUND_GREETING: ["patient_full_name"],
+        ConversationPhase.OUTBOUND_GREETING: [
+            "patient_full_name", "service_type", "appointment_date", "appointment_time"
+        ],
         ConversationPhase.OUTBOUND_SERVICE_CONFIRMATION: [
             "patient_full_name", "service_type", "appointment_date",
             "appointment_time", "pickup_address", "contact_name"

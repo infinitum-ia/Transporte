@@ -1,29 +1,81 @@
-♻️  [ORCHESTRATOR] Sesión existente reutilizada: d880f14a-b41e-411e-9ec4-d1a5b8a3e639
-[23:18:51] INFO: SESSION_REUSED
-[23:18:51] INFO: SESSION_STATE
+INFO:     Will watch for changes in these directories: ['C:\\Users\\Administrador\\Documents\\Transporte']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [22448] using WatchFiles
+2026-01-19 08:38:16,556 - numexpr.utils - INFO - Note: NumExpr detected 20 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 16.
+2026-01-19 08:38:16,556 - numexpr.utils - INFO - NumExpr defaulting to 16 threads.
+INFO:     Started server process [28488]
+INFO:     Waiting for application startup.
+ Excel service initialized: C:/Users/Administrador/Documents/Transporte/datos_llamadas_salientes.csv
+2026-01-19 08:38:16,773 - src.agent.langgraph_orchestrator - INFO - Initializing LangGraph with LLM-based context builder
+===============COMPILANDO GRAFO============
+ Transpormax Medical Transport Agent v1.0.0 starting...
+ Environment: development
+ Agent: María
+ Company: Transpormax
+ Orchestrator: LangGraph (LLM-based)
+ API Docs: http://0.0.0.0:8000/docs
+INFO:     Application startup complete.
+2026-01-19 08:38:25,627 - request_timing - INFO - ⏱️  REQUEST START | POST /api/v1/conversation/unified
+
+================================================================================
+ [ENDPOINT] MENSAJE RECIBIDO
+================================================================================
+    Teléfono: 573042124567
+    Mensaje: 'START'
+    Dirección: OUTBOUND (llamamos)
+    Agente: María
+================================================================================
+
+ [ENDPOINT] Enviando a LangGraph Orchestrator...
+
+▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+🎬 [ORCHESTRATOR] PROCESANDO MENSAJE
+▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+2026-01-19 08:38:25,637 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] patient_phone=573042124567
+2026-01-19 08:38:25,637 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] user_message='START...'
+2026-01-19 08:38:25,637 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] is_outbound=True
+🔍 [ORCHESTRATOR] Buscando sesión existente para 573042124567...
+[13:38:25] INFO: SESSION_LOOKUP_MISS
+2026-01-19 08:38:25,637 - transformas - INFO - SESSION_LOOKUP_MISS
+✨ [ORCHESTRATOR] Nueva sesión creada: f94d809e-c9df-4b59-a59a-ec58a8f0142a
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ [13:38:25] 📱 NUEVA SESIÓN OUTBOUND
+│ Session ID: f94d809e | Teléfono: 573042124567
+└──────────────────────────────────────────────────────────────────────────────┘
+
+2026-01-19 08:38:25,648 - transformas - INFO - SESSION_CREATED
+[13:38:25] INFO: SESSION_STATE
+2026-01-19 08:38:25,648 - transformas - INFO - SESSION_STATE
+🎯 [ORCHESTRATOR] Primera llamada OUTBOUND - mensaje automático generado
 
 🚀 [ORCHESTRATOR] Ejecutando LangGraph...
-   Session: d880f14a
+   Session: f94d809e
    Fase actual: OUTBOUND_GREETING
-   Turno: 1
+   Turno: 0
+2026-01-19 08:38:25,649 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] Procesando mensaje para session_id=f94d809e...
 
 ============================================================
 🔍 [PRE_ANALYZER] INICIANDO ANÁLISIS
 ============================================================
-Respuesta del analizador  {
-  "emotion": "confusión",
-  "emotion_level": "medio",
-  "intent": "pregunta",
-  "topic": "servicio",
-  "needs_empathy": true,
+2026-01-19 08:38:27,865 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+Respuesta del analizador  ```json
+{
+  "emotion": "neutro",
+  "emotion_level": "bajo",
+  "intent": "saludo",
+  "topic": "otro",
+  "needs_empathy": false,
   "policy_keywords": []
 }
+```
+2026-01-19 08:38:27,903 - src.agent.graph.nodes.pre_analyzer - INFO - [PRE_ANALYZER] neutro(bajo) | saludo | otro
 
 📊 [PRE_ANALYZER] RESULTADO:
-   • Emoción: confusión (medio)
-   • Intent: pregunta
-   • Topic: servicio
-   • Needs empathy: True
+   • Emoción: neutro (bajo)
+   • Intent: saludo
+   • Topic: otro
+   • Needs empathy: False
    • Policy keywords: []
 ============================================================
 
@@ -31,55 +83,63 @@ Respuesta del analizador  {
 ============================================================
 📚 [CONTEXT_ENRICHER] ENRIQUECIENDO CONTEXTO
 ============================================================
-   • Input - user_emotion: confusión
-   • Input - user_emotion_level: medio
-   • Input - user_intent: pregunta
+   • Input - user_emotion: neutro
+   • Input - user_emotion_level: bajo
+   • Input - user_intent: saludo
    • Input - policy_keywords: []
+2026-01-19 08:38:27,907 - src.agent.graph.nodes.context_enricher - INFO - [CONTEXT_ENRICHER] Cargados 10 casos
+2026-01-19 08:38:27,907 - src.agent.graph.nodes.context_enricher - INFO - [CONTEXT_ENRICHER] Políticas: 0, Caso: False, Tono: False
 
 📤 [CONTEXT_ENRICHER] RESULTADO:
    • Políticas: 0 encontradas
-   • Caso ejemplo: SÍ (479 chars)
-   • Tone instruction: SÍ
-     →
-- Simplifica tu explicación
-- Ofrece repetir si es necesario...
+   • Caso ejemplo: NO
+   • Tone instruction: NO
 ============================================================
 
 
 ============================================================
 🔧 [CONTEXT_BUILDER] INICIANDO
 ============================================================
+2026-01-19 08:38:27,951 - src.agent.context_builder - INFO - ContextBuilderAgent inicializado (versión simplificada)
+2026-01-19 08:38:27,951 - src.agent.context_builder - INFO - [CONTEXT_BUILDER] Construyendo contexto para fase: OUTBOUND_GREETING
 
 📊 [CONTEXT_BUILDER] DATOS DEL SUPERVISOR EN STATE:
-   • user_emotion: confusión
-   • user_emotion_level: medio
-   • user_intent: pregunta
-   • tone_instruction:
-- Simplifica tu explicación
-- Ofrece repetir si e
+   • user_emotion: neutro
+   • user_emotion_level: bajo
+   • user_intent: saludo
+   • tone_instruction: VACÍO
    • relevant_policies: []
-   • case_example: SÍ (479 chars)
-Variable faltante en instrucción de fase: '"contact_relationship"'
+   • case_example: NO
+2026-01-19 08:38:27,953 - src.agent.prompts.prompt_builder - INFO - [PROMPT_BUILDER] Construyendo prompt para fase=OUTBOUND_GREETING
+2026-01-19 08:38:27,953 - src.agent.prompts.prompt_builder - INFO - [PROMPT_BUILDER] Datos conocidos para prompt | phase=OUTBOUND_GREETING | known_data={'patient_full_name': 'Kevin Perez', 'document_type': 'CC', 'document_number': '8901234', 'eps': 'Cosalud', 'service_type': 'Terapia', 'appointment_date': 'mañana MARTES 20 de enero', 'appointment_time': '8:30', 'pickup_address': 'Calle 22 #14-30'} | alertas=[]
+2026-01-19 08:38:27,953 - src.agent.prompts.prompt_builder - INFO - [PROMPT_BUILDER] ~799 palabras | tono=False | políticas=False | caso=False
 
 📝 [CONTEXT_BUILDER] PROMPT CONSTRUIDO:
-   • Longitud: ~822 palabras
+   • Longitud: ~799 palabras
    • Contiene 'POLÍTICAS APLICABLES': NO
-   • Contiene 'EJEMPLO DE REFERENCIA': SÍ
+   • Contiene 'EJEMPLO DE REFERENCIA': NO
    • Contiene instrucción de tono: NO
 ============================================================
 
+2026-01-19 08:38:27,955 - src.agent.graph.nodes.context_builder - INFO - [CONTEXT_BUILDER] Fase: OUTBOUND_GREETING | Emoción: neutro | Intent: saludo | Políticas: 0 | Prompt: ~799 palabras
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 [NODO 2/3] LLM RESPONDER - Generando Respuesta con OpenAI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Último usuario: de que transpor que? no escuche discupe
+C:\Users\Administrador\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\langgraph\_internal\_runnable.py:656: UserWarning: WARNING! response_format is not default parameter.
+                response_format was transferred to model_kwargs.
+                Please confirm that response_format is what you intended.
+  input = context.run(step.invoke, input, config, **kwargs)
+Último usuario: [INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the patient.]
 
+2026-01-19 08:38:27,957 - transformas - INFO - LANGGRAPH_STATE
 
 🧠 [AGENT B] OpenAI GPT (gpt-4o-mini) - Generando respuesta...
-   ➤ Prompt: 6082 caracteres (~822 palabras)
-   ➤ Historial: 3 mensajes
+   ➤ Prompt: 5767 caracteres (~799 palabras)
+   ➤ Historial: 1 mensajes
    ➤ Temperatura: 0.3
    ➤ Max tokens: 2000
+2026-01-19 08:38:27,958 - src.agent.graph.nodes.llm_responder - INFO - Calling LLM for phase: OUTBOUND_GREETING
 
 ────────────────────────────────────────────────────────────────────────────────
 📄 PROMPT PREVIEW (primeras 500 caracteres):
@@ -97,9 +157,6 @@ REGLAS FUNDAMENTALES:
 - El campo "next_phase" es para control de flujo, NO lo menciones en tu respuesta hablada
 
 
-- Simplifica tu explicación
-- Ofrece repetir si es necesario
-
 FASE: IDENTIFICACIÓN OUTBOUND
 
 OBJETIVO:
@@ -116,7 +173,7 @@ DATOS CONOCIDOS (NO PREGUNTAR):
 • patient_name
 
 PRIMER TURNO (FIJO):
-"Buenos días/tardes, soy {agent_name} de {company_name}, autorizada por {eps_name}. ¿Hablo con {patient_name}?"
+"¿Tengo el gusto de hablar con Kevin Perez?"
 → ESPERA respuesta
 
 ANÁLISIS DE RESPUESTA
@@ -129,7 +186,7 @@ Indicadores: "sí", "soy yo", "con él/ella", nombre del paciente
 
 → Respuesta:
 "Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
-Le llamo para confirmar la autorización de  transporte."
+Le llamo para confirmar su servicio de transporte para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"
 
 → extracted:
 {"contact_relationship": "titular"}
@@ -145,8 +202,8 @@ SUBCASO B1 - PARENTESCO YA MENCIONADO
 Ejemplos: "habla la hermana", "soy el hijo", "contesta la esposa"
 
 → Respuesta:
-"Perfecto. le informo que Esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
-Llamo para confirmar la autorización del transporte de {patient_name}."
+"Perfecto. Le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
+Llamo para confirmar el servicio de transporte de Kevin Perez para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"
 
 → extracted (ejemplo):
 {"contact_relationship": "hermana"}
@@ -162,7 +219,7 @@ SUBCASO B2 - NO HAY PARENTESCO (solo nombre o identidad)
 Ejemplos: "habla Alejandro", "soy Martha", "yo contesto"
 
 → Respuesta:
-"¿Me confirma por favor qué relación tiene usted con el Sr./Sra. {patient_name}?"
+"¿Me confirma por favor qué relación tiene usted con el Sr./Sra. Kevin Perez?"
 
 → SIGUIENTE:
 OUTBOUND_GREETING
@@ -174,8 +231,8 @@ CASO C - PREGUNTA QUIÉN LLAMA
 Indicadores: "¿quién habla?", "¿de parte de quién?", "¿con quién tengo el gusto?"
 
 → Respuesta:
-"Soy {agent_name} de {company_name}, autorizada por {eps_name}.
-Llamo para confirmar la autorización del transporte.
+"Soy María de Transpormax, autorizada por Cosalud.
+El motivo de la llamada es un servicio de transporte autorizado para Kevin Perez.
 ¿Con quién tengo el gusto de hablar?"
 
 → SIGUIENTE:
@@ -246,22 +303,11 @@ sin preguntas innecesarias ni retrocesos de fase.
 
 
 
-EJEMPLO DE REFERENCIA:
-**Contexto**: Usuario no comprende la información o pide repetir.
-**Señales**: "no entiendo", "¿cómo así?", "repítame eso"
-
-**Ejemplo**:
-```
-Usuario: "no entiendo, entonces a qué hora es?"
-Agente: "Claro, le explico de forma más sencilla: su cita de Diálisis está programada para este lunes 6 de enero a las 6 de la mañana. El vehículo pasará a recogerlo a su dirección registrada. ¿Queda claro?"
-```
-**Principio**: Simplificar, usar lenguaje directo, confirmar comprensión.
-
----
-
-
 DATOS CONOCIDOS (no preguntes esto):
-• Patient Full Name: John Jairo Mesa
+• Patient Full Name: Kevin Perez
+• Service Type: Terapia
+• Appointment Date: mañana MARTES 20 de enero
+• Appointment Time: 8:30
 
 
 EXTRACCIÓN DE DATOS:
@@ -292,3 +338,442 @@ RESPONDE CON JSON VÁLIDO:
     "contact_age": null
   }
 }
+
+────────────────────────────────────────────────────────────────────────────────
+💬 HISTORIAL DE CONVERSACIÓN (1 mensajes):
+   1. [human]: [INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the pa...
+────────────────────────────────────────────────────────────────────────────────
+
+⏳ Esperando respuesta del LLM...
+==========LO QUE SE MANDA========================== [SystemMessage(content='Eres María de Transpormax, autorizado por Cosalud.\n\nREGLAS FUNDAMENTALES:\n- NO repitas lo que dijiste en turnos anteriores (si ya confirmaste, no vuelvas a dar resumen)\n- NO preguntes datos que ya tienes en DATOS CONOCIDOS\n- Máximo 2 acciones por turno (1 pregunta principal + 1 validación opcional)\n- EXTRAE datos de TODO el historial, no solo del último mensaje\n- NUNCA te vuelvas a presentar ("Soy X de Y") después del primer turno\n- Si usuario dice "ok/gracias" después de confirmación → pregunta si tiene dudas, NO repitas info\n- Responde SOLO con JSON válido con el esquema indicado\n- El campo "next_phase" es para control de flujo, NO lo menciones en tu respuesta hablada\n\n\nFASE: IDENTIFICACIÓN OUTBOUND\n\nOBJETIVO:\nValidar QUIÉN responde la llamada y su PARENTESCO con el paciente\nANTES de mencionar cualquier dato del servicio, cita o transporte.\n\nREGLA CRÍTICA (ANTI-REDUNDANCIA):\nSi el usuario menciona un parentesco claro en cualquier mensaje\n(ej: hermana, hijo, esposa, mamá, papá, tio),\nNO vuelvas a preguntar por la relación.\nEl nombre del contacto NO es obligatorio para avanzar.\n\nDATOS CONOCIDOS (NO PREGUNTAR):\n• patient_name\n\nPRIMER TURNO (FIJO):\n"¿Tengo el gusto de hablar con Kevin Perez?"\n→ ESPERA respuesta\n\nANÁLISIS DE RESPUESTA\n(Clasifica la respuesta en UN solo caso antes de responder)\n\n────────────────────────────────\n\nCASO A - ES EL PACIENTE\nIndicadores: "sí", "soy yo", "con él/ella", nombre del paciente\n\n→ Respuesta:\n"Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.\nLe llamo para confirmar su servicio de transporte para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"\n\n→ extracted:\n{"contact_relationship": "titular"}\n\n→ SIGUIENTE:\nOUTBOUND_SERVICE_CONFIRMATION\n\n────────────────────────────────\n\nCASO B - ES FAMILIAR / TERCERO\n\nSUBCASO B1 - PARENTESCO YA MENCIONADO\nEjemplos: "habla la hermana", "soy el hijo", "contesta la esposa"\n\n→ Respuesta:\n"Perfecto. Le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.\nLlamo para confirmar el servicio de transporte de Kevin Perez para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"\n\n→ extracted (ejemplo):\n{"contact_relationship": "hermana"}\n\n→ SIGUIENTE:\nOUTBOUND_SERVICE_CONFIRMATION\n\n⚠️ No preguntar nuevamente el parentesco.\n\n────────────────────────────────\n\nSUBCASO B2 - NO HAY PARENTESCO (solo nombre o identidad)\nEjemplos: "habla Alejandro", "soy Martha", "yo contesto"\n\n→ Respuesta:\n"¿Me confirma por favor qué relación tiene usted con el Sr./Sra. Kevin Perez?"\n\n→ SIGUIENTE:\nOUTBOUND_GREETING\n(reintentar captura)\n\n────────────────────────────────\n\nCASO C - PREGUNTA QUIÉN LLAMA\nIndicadores: "¿quién habla?", "¿de parte de quién?", "¿con quién tengo el gusto?"\n\n→ Respuesta:\n"Soy María de Transpormax, autorizada por Cosalud.\nEl motivo de la llamada es un servicio de transporte autorizado para Kevin Perez.\n¿Con quién tengo el gusto de hablar?"\n\n→ SIGUIENTE:\nOUTBOUND_GREETING\n(espera respuesta)\n\n────────────────────────────────\n\nCASO D - TRANSFIERE LA LLAMADA\nIndicadores: "espere", "ya se lo paso", "un momento"\n\n→ Respuesta:\n"Perfecto, quedo en línea."\n\n→ SIGUIENTE:\nOUTBOUND_GREETING\n(espera nueva persona)\n\n────────────────────────────────\n\nCASO E - NO CONOCE AL PACIENTE\nIndicadores: "no lo conozco", "número equivocado", "aquí no vive"\n\n→ Respuesta:\n"Disculpe la molestia, parece número incorrecto.\nQue tenga un buen día."\n\n→ SIGUIENTE:\nEND\n\n────────────────────────────────\n\nVALIDACIÓN DE EDAD:\nSi contact_relationship ∈ {hijo, hija, nieto, nieta}\nY el usuario indica explícitamente ser menor de edad:\n\n→ Respuesta:\n"¿Podría comunicarnos con un adulto responsable, por favor?"\n\nSi no hay adulto disponible:\n→ SIGUIENTE: END\n\n⚠️ No inferir edad.\n⚠️ No preguntar edad si no fue mencionada.\n\n────────────────────────────────\n\nEXTRACCIÓN DE DATOS (SIEMPRE ACTIVA):\nRevisar todo el historial y extraer cualquier dato mencionado.\n\nEjemplos:\n- "habla la hermana" → {"contact_relationship": "hermana"}\n- "soy Martha la esposa" → {"contact_name": "Martha", "contact_relationship": "esposa"}\n- "yo soy la mamá" → {"contact_relationship": "madre"}\n- "CC 123456" → {"document_type": "CC", "document_number": "123456"}\n\n────────────────────────────────\n\nPROHIBICIONES:\n- No repetir preguntas ya respondidas\n- No pedir parentesco si ya fue mencionado\n- No mencionar citas, fechas o servicios antes de validar identidad\n- No asumir datos no expresados por el usuario\n\nCRITERIO DE CALIDAD:\nLa conversación debe sentirse fluida, natural y humana,\nsin preguntas innecesarias ni retrocesos de fase.\n\n\n\nDATOS CONOCIDOS (no preguntes esto):\n• Patient Full Name: Kevin Perez\n• Service Type: Terapia\n• Appointment Date: mañana MARTES 20 de enero\n• Appointment Time: 8:30\n\n\nEXTRACCIÓN DE DATOS:\nRevisa TODO el historial. Si el usuario dio un dato en cualquier mensaje, extráelo.\n\nPatrones comunes:\n- "no, con el hijo" → contact_relationship: "hijo"\n- "soy Martha la esposa" → contact_name: "Martha", contact_relationship: "esposa"\n- "yo soy la mamá" → contact_relationship: "madre" (NO es nombre)\n- "CC 123456" → document_type: "CC", document_number: "123456"\n\n\nRESPONDE CON JSON VÁLIDO:\n{\n  "agent_response": "Tu respuesta conversacional",\n  "next_phase": ("OUTBOUND_GREETING" | "OUTBOUND_SERVICE_CONFIRMATION" | "END"),\n  "requires_escalation": false,\n  "extracted": {\n    "patient_full_name": null,\n    "document_type": null,\n    "document_number": null,\n    "service_type": null,\n    "appointment_date": null,\n    "appointment_time": null,\n    "pickup_address": null,\n    "contact_name": null,\n    "contact_relationship": null,\n    "contact_age": null\n  }\n}', additional_kwargs={}, response_metadata={}), HumanMessage(content="[INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the patient.]", additional_kwargs={}, response_metadata={}, id='74c96de9-7c32-4550-b7c4-3f34cd5b7a12')]
+2026-01-19 08:38:31,307 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+=======================LO QUE DEVUELVE======================= {
+  "agent_response": "¿Tengo el gusto de hablar con Kevin Perez?",
+  "next_phase": "OUTBOUND_GREETING",
+  "requires_escalation": false,
+  "extracted": {
+    "patient_full_name": null,
+    "document_type": null,
+    "document_number": null,
+    "service_type": null,
+    "appointment_date": null,
+    "appointment_time": null,
+    "pickup_address": null,
+    "contact_name": null,
+    "contact_relationship": null,
+    "contact_age": null
+  }
+}
+✅ Respuesta recibida del LLM
+
+✅ [VALIDACIÓN] Respuesta aprobada
+✅ [NODO 2/3] LLM completado exitosamente
+   💬 Respuesta: '¿Tengo el gusto de hablar con Kevin Perez?...'
+   🔄 Próxima fase: OUTBOUND_GREETING → OUTBOUND_GREETING
+   📊 Datos extraídos: 0 campos
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ [13:38:31] 💬 RESPUESTA LLM · S:f94d809e
+│ Fase actual: OUTBOUND_GREETING → Siguiente: OUTBOUND_GREETING
+│ Escalamiento: no
+│ Respuesta: ¿Tengo el gusto de hablar con Kevin Perez?...
+│ Extraído: ninguno
+└──────────────────────────────────────────────────────────────────────────────┘
+
+2026-01-19 08:38:31,348 - transformas - INFO - LLM_RESPONSE
+[13:38:31] INFO: RESPONSE_PROCESSOR
+2026-01-19 08:38:31,351 - transformas - INFO - RESPONSE_PROCESSOR
+[13:38:31] INFO: LANGGRAPH_STEP
+2026-01-19 08:38:31,352 - transformas - INFO - LANGGRAPH_STEP
+✅ [ORCHESTRATOR] LangGraph completado
+2026-01-19 08:38:31,354 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] Mensaje procesado exitosamente
+2026-01-19 08:38:31,377 - src.agent.langgraph_orchestrator - INFO - Session f94d809e... saved to Redis
+
+ [ENDPOINT] RESPUESTA LISTA
+   Respuesta: '¿Tengo el gusto de hablar con Kevin Perez?...'
+    Fase: OUTBOUND_GREETING
+================================================================================
+
+2026-01-19 08:38:31,378 - request_timing - INFO - ⏱️  REQUEST END   | POST /api/v1/conversation/unified | Status: 200 | Duration: 5751.31ms
+INFO:     127.0.0.1:53520 - "POST /api/v1/conversation/unified HTTP/1.1" 200 OK
+2026-01-19 08:38:51,405 - request_timing - INFO - ⏱️  REQUEST START | POST /api/v1/conversation/unified
+
+================================================================================
+ [ENDPOINT] MENSAJE RECIBIDO
+================================================================================
+    Teléfono: 573042124567
+    Mensaje: 'si, claro'
+    Dirección: OUTBOUND (llamamos)
+    Agente: María
+================================================================================
+
+ [ENDPOINT] Enviando a LangGraph Orchestrator...
+
+▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+🎬 [ORCHESTRATOR] PROCESANDO MENSAJE
+▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+2026-01-19 08:38:51,408 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] patient_phone=573042124567
+2026-01-19 08:38:51,408 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] user_message='si, claro...'
+2026-01-19 08:38:51,408 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] is_outbound=True
+🔍 [ORCHESTRATOR] Buscando sesión existente para 573042124567...
+[13:38:51] INFO: SESSION_LOOKUP_HIT
+2026-01-19 08:38:51,409 - transformas - INFO - SESSION_LOOKUP_HIT
+♻️  [ORCHESTRATOR] Sesión existente reutilizada: f94d809e-c9df-4b59-a59a-ec58a8f0142a
+[13:38:51] INFO: SESSION_REUSED
+2026-01-19 08:38:51,409 - transformas - INFO - SESSION_REUSED
+[13:38:51] INFO: SESSION_STATE
+2026-01-19 08:38:51,410 - transformas - INFO - SESSION_STATE
+
+🚀 [ORCHESTRATOR] Ejecutando LangGraph...
+   Session: f94d809e
+   Fase actual: OUTBOUND_GREETING
+   Turno: 1
+2026-01-19 08:38:51,411 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] Procesando mensaje para session_id=f94d809e...
+
+============================================================
+🔍 [PRE_ANALYZER] INICIANDO ANÁLISIS
+============================================================
+2026-01-19 08:38:53,341 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+Respuesta del analizador  ```json
+{
+  "emotion": "neutro",
+  "emotion_level": "bajo",
+  "intent": "confirmar",
+  "topic": "otro",
+  "needs_empathy": false,
+  "policy_keywords": []
+}
+```
+2026-01-19 08:38:53,344 - src.agent.graph.nodes.pre_analyzer - INFO - [PRE_ANALYZER] neutro(bajo) | confirmar | otro
+
+📊 [PRE_ANALYZER] RESULTADO:
+   • Emoción: neutro (bajo)
+   • Intent: confirmar
+   • Topic: otro
+   • Needs empathy: False
+   • Policy keywords: []
+============================================================
+
+
+============================================================
+📚 [CONTEXT_ENRICHER] ENRIQUECIENDO CONTEXTO
+============================================================
+   • Input - user_emotion: neutro
+   • Input - user_emotion_level: bajo
+   • Input - user_intent: confirmar
+   • Input - policy_keywords: []
+2026-01-19 08:38:53,349 - src.agent.graph.nodes.context_enricher - INFO - [CONTEXT_ENRICHER] Políticas: 0, Caso: False, Tono: False
+
+📤 [CONTEXT_ENRICHER] RESULTADO:
+   • Políticas: 0 encontradas
+   • Caso ejemplo: NO
+   • Tone instruction: NO
+============================================================
+
+
+============================================================
+🔧 [CONTEXT_BUILDER] INICIANDO
+============================================================
+2026-01-19 08:38:53,356 - src.agent.context_builder - INFO - ContextBuilderAgent inicializado (versión simplificada)
+2026-01-19 08:38:53,356 - src.agent.context_builder - INFO - [CONTEXT_BUILDER] Construyendo contexto para fase: OUTBOUND_GREETING
+
+📊 [CONTEXT_BUILDER] DATOS DEL SUPERVISOR EN STATE:
+   • user_emotion: neutro
+   • user_emotion_level: bajo
+   • user_intent: confirmar
+   • tone_instruction: VACÍO
+   • relevant_policies: []
+   • case_example: NO
+2026-01-19 08:38:53,357 - src.agent.prompts.prompt_builder - INFO - [PROMPT_BUILDER] Construyendo prompt para fase=OUTBOUND_GREETING
+2026-01-19 08:38:53,357 - src.agent.prompts.prompt_builder - INFO - [PROMPT_BUILDER] Datos conocidos para prompt | phase=OUTBOUND_GREETING | known_data={'patient_full_name': 'Kevin Perez', 'document_type': 'CC', 'document_number': '8901234', 'eps': 'Cosalud', 'service_type': 'Terapia', 'appointment_date': 'mañana MARTES 20 de enero', 'appointment_time': '8:30', 'pickup_address': 'Calle 22 #14-30'} | alertas=[]
+2026-01-19 08:38:53,358 - src.agent.prompts.prompt_builder - INFO - [PROMPT_BUILDER] ~799 palabras | tono=False | políticas=False | caso=False
+
+📝 [CONTEXT_BUILDER] PROMPT CONSTRUIDO:
+   • Longitud: ~799 palabras
+   • Contiene 'POLÍTICAS APLICABLES': NO
+   • Contiene 'EJEMPLO DE REFERENCIA': NO
+   • Contiene instrucción de tono: NO
+============================================================
+
+2026-01-19 08:38:53,359 - src.agent.graph.nodes.context_builder - INFO - [CONTEXT_BUILDER] Fase: OUTBOUND_GREETING | Emoción: neutro | Intent: confirmar | Políticas: 0 | Prompt: ~799 palabras
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 [NODO 2/3] LLM RESPONDER - Generando Respuesta con OpenAI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Último usuario: si, claro
+
+2026-01-19 08:38:53,362 - transformas - INFO - LANGGRAPH_STATE
+
+🧠 [AGENT B] OpenAI GPT (gpt-4o-mini) - Generando respuesta...
+   ➤ Prompt: 5767 caracteres (~799 palabras)
+   ➤ Historial: 3 mensajes
+   ➤ Temperatura: 0.3
+   ➤ Max tokens: 2000
+2026-01-19 08:38:53,366 - src.agent.graph.nodes.llm_responder - INFO - Calling LLM for phase: OUTBOUND_GREETING
+
+────────────────────────────────────────────────────────────────────────────────
+📄 PROMPT PREVIEW (primeras 500 caracteres):
+────────────────────────────────────────────────────────────────────────────────
+Eres María de Transpormax, autorizado por Cosalud.
+
+REGLAS FUNDAMENTALES:
+- NO repitas lo que dijiste en turnos anteriores (si ya confirmaste, no vuelvas a dar resumen)
+- NO preguntes datos que ya tienes en DATOS CONOCIDOS
+- Máximo 2 acciones por turno (1 pregunta principal + 1 validación opcional)
+- EXTRAE datos de TODO el historial, no solo del último mensaje
+- NUNCA te vuelvas a presentar ("Soy X de Y") después del primer turno
+- Si usuario dice "ok/gracias" después de confirmación → pregunta si tiene dudas, NO repitas info
+- Responde SOLO con JSON válido con el esquema indicado
+- El campo "next_phase" es para control de flujo, NO lo menciones en tu respuesta hablada
+
+
+FASE: IDENTIFICACIÓN OUTBOUND
+
+OBJETIVO:
+Validar QUIÉN responde la llamada y su PARENTESCO con el paciente
+ANTES de mencionar cualquier dato del servicio, cita o transporte.
+
+REGLA CRÍTICA (ANTI-REDUNDANCIA):
+Si el usuario menciona un parentesco claro en cualquier mensaje
+(ej: hermana, hijo, esposa, mamá, papá, tio),
+NO vuelvas a preguntar por la relación.
+El nombre del contacto NO es obligatorio para avanzar.
+
+DATOS CONOCIDOS (NO PREGUNTAR):
+• patient_name
+
+PRIMER TURNO (FIJO):
+"¿Tengo el gusto de hablar con Kevin Perez?"
+→ ESPERA respuesta
+
+ANÁLISIS DE RESPUESTA
+(Clasifica la respuesta en UN solo caso antes de responder)
+
+────────────────────────────────
+
+CASO A - ES EL PACIENTE
+Indicadores: "sí", "soy yo", "con él/ella", nombre del paciente
+
+→ Respuesta:
+"Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
+Le llamo para confirmar su servicio de transporte para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"
+
+→ extracted:
+{"contact_relationship": "titular"}
+
+→ SIGUIENTE:
+OUTBOUND_SERVICE_CONFIRMATION
+
+────────────────────────────────
+
+CASO B - ES FAMILIAR / TERCERO
+
+SUBCASO B1 - PARENTESCO YA MENCIONADO
+Ejemplos: "habla la hermana", "soy el hijo", "contesta la esposa"
+
+→ Respuesta:
+"Perfecto. Le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.
+Llamo para confirmar el servicio de transporte de Kevin Perez para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"
+
+→ extracted (ejemplo):
+{"contact_relationship": "hermana"}
+
+→ SIGUIENTE:
+OUTBOUND_SERVICE_CONFIRMATION
+
+⚠️ No preguntar nuevamente el parentesco.
+
+────────────────────────────────
+
+SUBCASO B2 - NO HAY PARENTESCO (solo nombre o identidad)
+Ejemplos: "habla Alejandro", "soy Martha", "yo contesto"
+
+→ Respuesta:
+"¿Me confirma por favor qué relación tiene usted con el Sr./Sra. Kevin Perez?"
+
+→ SIGUIENTE:
+OUTBOUND_GREETING
+(reintentar captura)
+
+────────────────────────────────
+
+CASO C - PREGUNTA QUIÉN LLAMA
+Indicadores: "¿quién habla?", "¿de parte de quién?", "¿con quién tengo el gusto?"
+
+→ Respuesta:
+"Soy María de Transpormax, autorizada por Cosalud.
+El motivo de la llamada es un servicio de transporte autorizado para Kevin Perez.
+¿Con quién tengo el gusto de hablar?"
+
+→ SIGUIENTE:
+OUTBOUND_GREETING
+(espera respuesta)
+
+────────────────────────────────
+
+CASO D - TRANSFIERE LA LLAMADA
+Indicadores: "espere", "ya se lo paso", "un momento"
+
+→ Respuesta:
+"Perfecto, quedo en línea."
+
+→ SIGUIENTE:
+OUTBOUND_GREETING
+(espera nueva persona)
+
+────────────────────────────────
+
+CASO E - NO CONOCE AL PACIENTE
+Indicadores: "no lo conozco", "número equivocado", "aquí no vive"
+
+→ Respuesta:
+"Disculpe la molestia, parece número incorrecto.
+Que tenga un buen día."
+
+→ SIGUIENTE:
+END
+
+────────────────────────────────
+
+VALIDACIÓN DE EDAD:
+Si contact_relationship ∈ {hijo, hija, nieto, nieta}
+Y el usuario indica explícitamente ser menor de edad:
+
+→ Respuesta:
+"¿Podría comunicarnos con un adulto responsable, por favor?"
+
+Si no hay adulto disponible:
+→ SIGUIENTE: END
+
+⚠️ No inferir edad.
+⚠️ No preguntar edad si no fue mencionada.
+
+────────────────────────────────
+
+EXTRACCIÓN DE DATOS (SIEMPRE ACTIVA):
+Revisar todo el historial y extraer cualquier dato mencionado.
+
+Ejemplos:
+- "habla la hermana" → {"contact_relationship": "hermana"}
+- "soy Martha la esposa" → {"contact_name": "Martha", "contact_relationship": "esposa"}
+- "yo soy la mamá" → {"contact_relationship": "madre"}
+- "CC 123456" → {"document_type": "CC", "document_number": "123456"}
+
+────────────────────────────────
+
+PROHIBICIONES:
+- No repetir preguntas ya respondidas
+- No pedir parentesco si ya fue mencionado
+- No mencionar citas, fechas o servicios antes de validar identidad
+- No asumir datos no expresados por el usuario
+
+CRITERIO DE CALIDAD:
+La conversación debe sentirse fluida, natural y humana,
+sin preguntas innecesarias ni retrocesos de fase.
+
+
+
+DATOS CONOCIDOS (no preguntes esto):
+• Patient Full Name: Kevin Perez
+• Service Type: Terapia
+• Appointment Date: mañana MARTES 20 de enero
+• Appointment Time: 8:30
+
+
+EXTRACCIÓN DE DATOS:
+Revisa TODO el historial. Si el usuario dio un dato en cualquier mensaje, extráelo.
+
+Patrones comunes:
+- "no, con el hijo" → contact_relationship: "hijo"
+- "soy Martha la esposa" → contact_name: "Martha", contact_relationship: "esposa"
+- "yo soy la mamá" → contact_relationship: "madre" (NO es nombre)
+- "CC 123456" → document_type: "CC", document_number: "123456"
+
+
+RESPONDE CON JSON VÁLIDO:
+{
+  "agent_response": "Tu respuesta conversacional",
+  "next_phase": ("OUTBOUND_GREETING" | "OUTBOUND_SERVICE_CONFIRMATION" | "END"),
+  "requires_escalation": false,
+  "extracted": {
+    "patient_full_name": null,
+    "document_type": null,
+    "document_number": null,
+    "service_type": null,
+    "appointment_date": null,
+    "appointment_time": null,
+    "pickup_address": null,
+    "contact_name": null,
+    "contact_relationship": null,
+    "contact_age": null
+  }
+}
+
+────────────────────────────────────────────────────────────────────────────────
+💬 HISTORIAL DE CONVERSACIÓN (3 mensajes):
+   1. [human]: [INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the pa...
+   2. [ai]: ¿Tengo el gusto de hablar con Kevin Perez?...
+   3. [human]: si, claro...
+────────────────────────────────────────────────────────────────────────────────
+
+⏳ Esperando respuesta del LLM...
+==========LO QUE SE MANDA========================== [SystemMessage(content='Eres María de Transpormax, autorizado por Cosalud.\n\nREGLAS FUNDAMENTALES:\n- NO repitas lo que dijiste en turnos anteriores (si ya confirmaste, no vuelvas a dar resumen)\n- NO preguntes datos que ya tienes en DATOS CONOCIDOS\n- Máximo 2 acciones por turno (1 pregunta principal + 1 validación opcional)\n- EXTRAE datos de TODO el historial, no solo del último mensaje\n- NUNCA te vuelvas a presentar ("Soy X de Y") después del primer turno\n- Si usuario dice "ok/gracias" después de confirmación → pregunta si tiene dudas, NO repitas info\n- Responde SOLO con JSON válido con el esquema indicado\n- El campo "next_phase" es para control de flujo, NO lo menciones en tu respuesta hablada\n\n\nFASE: IDENTIFICACIÓN OUTBOUND\n\nOBJETIVO:\nValidar QUIÉN responde la llamada y su PARENTESCO con el paciente\nANTES de mencionar cualquier dato del servicio, cita o transporte.\n\nREGLA CRÍTICA (ANTI-REDUNDANCIA):\nSi el usuario menciona un parentesco claro en cualquier mensaje\n(ej: hermana, hijo, esposa, mamá, papá, tio),\nNO vuelvas a preguntar por la relación.\nEl nombre del contacto NO es obligatorio para avanzar.\n\nDATOS CONOCIDOS (NO PREGUNTAR):\n• patient_name\n\nPRIMER TURNO (FIJO):\n"¿Tengo el gusto de hablar con Kevin Perez?"\n→ ESPERA respuesta\n\nANÁLISIS DE RESPUESTA\n(Clasifica la respuesta en UN solo caso antes de responder)\n\n────────────────────────────────\n\nCASO A - ES EL PACIENTE\nIndicadores: "sí", "soy yo", "con él/ella", nombre del paciente\n\n→ Respuesta:\n"Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.\nLe llamo para confirmar su servicio de transporte para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"\n\n→ extracted:\n{"contact_relationship": "titular"}\n\n→ SIGUIENTE:\nOUTBOUND_SERVICE_CONFIRMATION\n\n────────────────────────────────\n\nCASO B - ES FAMILIAR / TERCERO\n\nSUBCASO B1 - PARENTESCO YA MENCIONADO\nEjemplos: "habla la hermana", "soy el hijo", "contesta la esposa"\n\n→ Respuesta:\n"Perfecto. Le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad.\nLlamo para confirmar el servicio de transporte de Kevin Perez para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?"\n\n→ extracted (ejemplo):\n{"contact_relationship": "hermana"}\n\n→ SIGUIENTE:\nOUTBOUND_SERVICE_CONFIRMATION\n\n⚠️ No preguntar nuevamente el parentesco.\n\n────────────────────────────────\n\nSUBCASO B2 - NO HAY PARENTESCO (solo nombre o identidad)\nEjemplos: "habla Alejandro", "soy Martha", "yo contesto"\n\n→ Respuesta:\n"¿Me confirma por favor qué relación tiene usted con el Sr./Sra. Kevin Perez?"\n\n→ SIGUIENTE:\nOUTBOUND_GREETING\n(reintentar captura)\n\n────────────────────────────────\n\nCASO C - PREGUNTA QUIÉN LLAMA\nIndicadores: "¿quién habla?", "¿de parte de quién?", "¿con quién tengo el gusto?"\n\n→ Respuesta:\n"Soy María de Transpormax, autorizada por Cosalud.\nEl motivo de la llamada es un servicio de transporte autorizado para Kevin Perez.\n¿Con quién tengo el gusto de hablar?"\n\n→ SIGUIENTE:\nOUTBOUND_GREETING\n(espera respuesta)\n\n────────────────────────────────\n\nCASO D - TRANSFIERE LA LLAMADA\nIndicadores: "espere", "ya se lo paso", "un momento"\n\n→ Respuesta:\n"Perfecto, quedo en línea."\n\n→ SIGUIENTE:\nOUTBOUND_GREETING\n(espera nueva persona)\n\n────────────────────────────────\n\nCASO E - NO CONOCE AL PACIENTE\nIndicadores: "no lo conozco", "número equivocado", "aquí no vive"\n\n→ Respuesta:\n"Disculpe la molestia, parece número incorrecto.\nQue tenga un buen día."\n\n→ SIGUIENTE:\nEND\n\n────────────────────────────────\n\nVALIDACIÓN DE EDAD:\nSi contact_relationship ∈ {hijo, hija, nieto, nieta}\nY el usuario indica explícitamente ser menor de edad:\n\n→ Respuesta:\n"¿Podría comunicarnos con un adulto responsable, por favor?"\n\nSi no hay adulto disponible:\n→ SIGUIENTE: END\n\n⚠️ No inferir edad.\n⚠️ No preguntar edad si no fue mencionada.\n\n────────────────────────────────\n\nEXTRACCIÓN DE DATOS (SIEMPRE ACTIVA):\nRevisar todo el historial y extraer cualquier dato mencionado.\n\nEjemplos:\n- "habla la hermana" → {"contact_relationship": "hermana"}\n- "soy Martha la esposa" → {"contact_name": "Martha", "contact_relationship": "esposa"}\n- "yo soy la mamá" → {"contact_relationship": "madre"}\n- "CC 123456" → {"document_type": "CC", "document_number": "123456"}\n\n────────────────────────────────\n\nPROHIBICIONES:\n- No repetir preguntas ya respondidas\n- No pedir parentesco si ya fue mencionado\n- No mencionar citas, fechas o servicios antes de validar identidad\n- No asumir datos no expresados por el usuario\n\nCRITERIO DE CALIDAD:\nLa conversación debe sentirse fluida, natural y humana,\nsin preguntas innecesarias ni retrocesos de fase.\n\n\n\nDATOS CONOCIDOS (no preguntes esto):\n• Patient Full Name: Kevin Perez\n• Service Type: Terapia\n• Appointment Date: mañana MARTES 20 de enero\n• Appointment Time: 8:30\n\n\nEXTRACCIÓN DE DATOS:\nRevisa TODO el historial. Si el usuario dio un dato en cualquier mensaje, extráelo.\n\nPatrones comunes:\n- "no, con el hijo" → contact_relationship: "hijo"\n- "soy Martha la esposa" → contact_name: "Martha", contact_relationship: "esposa"\n- "yo soy la mamá" → contact_relationship: "madre" (NO es nombre)\n- "CC 123456" → document_type: "CC", document_number: "123456"\n\n\nRESPONDE CON JSON VÁLIDO:\n{\n  "agent_response": "Tu respuesta conversacional",\n  "next_phase": ("OUTBOUND_GREETING" | "OUTBOUND_SERVICE_CONFIRMATION" | "END"),\n  "requires_escalation": false,\n  "extracted": {\n    "patient_full_name": null,\n    "document_type": null,\n    "document_number": null,\n    "service_type": null,\n    "appointment_date": null,\n    "appointment_time": null,\n    "pickup_address": null,\n    "contact_name": null,\n    "contact_relationship": null,\n    "contact_age": null\n  }\n}', additional_kwargs={}, response_metadata={}), HumanMessage(content="[INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the patient.]", additional_kwargs={}, response_metadata={}, id='74c96de9-7c32-4550-b7c4-3f34cd5b7a12'), AIMessage(content='¿Tengo el gusto de hablar con Kevin Perez?', additional_kwargs={}, response_metadata={}, id='5842f6cc-707f-4eb6-b23a-831f93e9963d'), HumanMessage(content='si, claro', additional_kwargs={}, response_metadata={}, id='f2a3b39e-c547-48b3-beb1-0662de2f7151')]
+2026-01-19 08:38:59,616 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+=======================LO QUE DEVUELVE======================= {
+  "agent_response": "Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad. Le llamo para confirmar su servicio de transporte para cita de Terapia el mañana MARTES 20 de enero a las 8:30. ¿Me confirma si asistirá para programar su recogida?",
+  "next_phase": "OUTBOUND_SERVICE_CONFIRMATION",
+  "requires_escalation": false,
+  "extracted": {
+    "patient_full_name": "Kevin Perez",
+    "document_type": null,
+    "document_number": null,
+    "service_type": "Terapia",
+    "appointment_date": "mañana MARTES 20 de enero",
+    "appointment_time": "8:30",
+    "pickup_address": null,
+    "contact_name": null,
+    "contact_relationship": "titular",
+    "contact_age": null
+  }
+}
+✅ Respuesta recibida del LLM
+
+✅ [VALIDACIÓN] Respuesta aprobada
+✅ [NODO 2/3] LLM completado exitosamente
+   💬 Respuesta: 'Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efe...'
+   🔄 Próxima fase: OUTBOUND_GREETING → OUTBOUND_SERVICE_CONFIRMATION
+   📊 Datos extraídos: 5 campos
+      → patient_full_name: Kevin Perez
+      → service_type: Terapia
+      → appointment_date: mañana MARTES 20 de enero
+      → appointment_time: 8:30
+      → contact_relationship: titular
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ [13:38:59] 💬 RESPUESTA LLM · S:f94d809e
+│ Fase actual: OUTBOUND_GREETING → Siguiente: OUTBOUND_SERVICE_CONFIRMATION
+│ Escalamiento: no
+│ Respuesta: Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y seguridad. Le llamo para confirmar su servicio de tr...
+│ Extraído: patient_full_name=Kevin Perez, service_type=Terapia, appointment_date=mañana MARTES 20 de enero, appointment_time=8:30, contact_relationship=titular
+└──────────────────────────────────────────────────────────────────────────────┘
+
+2026-01-19 08:38:59,649 - transformas - INFO - LLM_RESPONSE
+[13:38:59] INFO: RESPONSE_PROCESSOR
+2026-01-19 08:38:59,652 - transformas - INFO - RESPONSE_PROCESSOR
+[13:38:59] INFO: LANGGRAPH_STEP
+2026-01-19 08:38:59,655 - transformas - INFO - LANGGRAPH_STEP
+✅ [ORCHESTRATOR] LangGraph completado
+2026-01-19 08:38:59,657 - src.agent.langgraph_orchestrator - INFO - [ORCHESTRATOR] Mensaje procesado exitosamente
+2026-01-19 08:38:59,659 - src.agent.langgraph_orchestrator - INFO - Session f94d809e... saved to Redis
+
+ [ENDPOINT] RESPUESTA LISTA
+   Respuesta: 'Perfecto, le informo que esta llamada está siendo grabada y monitoreada para efectos de calidad y se...'
+    Fase: OUTBOUND_SERVICE_CONFIRMATION
+================================================================================
+
+2026-01-19 08:38:59,661 - request_timing - INFO - ⏱️  REQUEST END   | POST /api/v1/conversation/unified | Status: 200 | Duration: 8256.48ms
+INFO:     127.0.0.1:53531 - "POST /api/v1/conversation/unified HTTP/1.1" 200 OK
