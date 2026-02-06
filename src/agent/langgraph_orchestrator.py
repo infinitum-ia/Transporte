@@ -491,32 +491,53 @@ class LangGraphOrchestrator:
         )
 
         # Process the message
-        # For OUTBOUND first message, replace "START" with internal instruction
         turn_count = state.get('turn_count', 0)
         processed_message = user_message
 
-        if is_outbound and turn_count == 0 and user_message.upper() in ["START", "INICIO", "COMENZAR"]:
-            processed_message = "[INTERNAL: This is an outbound call. You are calling the patient. Ask if you're speaking with the patient.]"
-            print(f"🎯 [ORCHESTRATOR] Primera llamada OUTBOUND - mensaje automático generado")
+        # SHORT-CIRCUIT: First outbound turn has a scripted greeting (skip LLM entirely)
+        if is_outbound and turn_count == 0 and user_message.upper() in ["START", "INICIO", "COMENZAR", "/START"]:
+            patient_name = state.get("patient_full_name", "")
+            scripted_response = f"\u00bfTengo el gusto de hablar con {patient_name}?" if patient_name else "\u00bfTengo el gusto de hablar con el paciente?"
+            print(f"\n\u26a1 [ORCHESTRATOR] SHORT-CIRCUIT: Primer turno outbound (sin LLM)")
+            print(f"   Respuesta directa: '{scripted_response}'")
+            logger.info(f"[ORCHESTRATOR] Short-circuit first outbound turn (no LLM call)")
 
-        print(f"\n🚀 [ORCHESTRATOR] Ejecutando LangGraph...")
-        print(f"   Session: {session_id[:8]}")
-        print(f"   Fase actual: {state.get('current_phase', 'GREETING')}")
-        print(f"   Turno: {turn_count}")
-        logger.info(f"[ORCHESTRATOR] Procesando mensaje para session_id={session_id[:8] if session_id else 'None'}...")
-        try:
-            response = await self.process_message(
-                session_id=session_id,
-                user_message=processed_message,
-                call_direction="OUTBOUND" if is_outbound else "INBOUND",
-                agent_name=agent_name or (self.settings.AGENT_NAME if self.settings else "María")
-            )
-            print(f"✅ [ORCHESTRATOR] LangGraph completado")
-            logger.info(f"[ORCHESTRATOR] Mensaje procesado exitosamente")
-        except Exception as e:
-            logger.error(f"[ORCHESTRATOR] ERROR en process_message: {e}", exc_info=True)
-            flush_langfuse()
-            raise
+            # Update state manually (same as LangGraph would)
+            state['messages'].append(HumanMessage(content="/START"))
+            state['messages'].append(AIMessage(content=scripted_response))
+            state['turn_count'] = 1
+            state['extracted_data'] = {"patient_full_name": patient_name} if patient_name else {}
+            self._sessions[session_id] = state
+
+            response = {
+                'agent_response': scripted_response,
+                'next_phase': 'OUTBOUND_GREETING',
+                'current_phase': 'OUTBOUND_GREETING',
+                'session_id': session_id,
+                'escalation_required': False,
+                'escalation_reasons': [],
+                'policy_violations': [],
+                'state': state_to_dict(state),
+            }
+        else:
+            print(f"\n\U0001F680 [ORCHESTRATOR] Ejecutando LangGraph...")
+            print(f"   Session: {session_id[:8]}")
+            print(f"   Fase actual: {state.get('current_phase', 'GREETING')}")
+            print(f"   Turno: {turn_count}")
+            logger.info(f"[ORCHESTRATOR] Procesando mensaje para session_id={session_id[:8] if session_id else 'None'}...")
+            try:
+                response = await self.process_message(
+                    session_id=session_id,
+                    user_message=processed_message,
+                    call_direction="OUTBOUND" if is_outbound else "INBOUND",
+                    agent_name=agent_name or (self.settings.AGENT_NAME if self.settings else "Mar\u00eda")
+                )
+                print(f"\u2705 [ORCHESTRATOR] LangGraph completado")
+                logger.info(f"[ORCHESTRATOR] Mensaje procesado exitosamente")
+            except Exception as e:
+                logger.error(f"[ORCHESTRATOR] ERROR en process_message: {e}", exc_info=True)
+                flush_langfuse()
+                raise
 
         # Save updated state to Redis if store is available
         if self.store:

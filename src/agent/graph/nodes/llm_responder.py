@@ -11,6 +11,34 @@ from src.infrastructure.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+# Cached ChatOpenAI instance (initialized lazily on first use)
+_cached_llm: ChatOpenAI | None = None
+_cached_llm_config: dict | None = None
+
+
+def _get_llm() -> ChatOpenAI:
+    """Return a cached ChatOpenAI instance, creating it on first call."""
+    global _cached_llm, _cached_llm_config
+
+    llm_kwargs = {
+        "openai_api_key": settings.OPENAI_API_KEY,
+        "model": settings.OPENAI_MODEL,
+        "temperature": settings.OPENAI_TEMPERATURE,
+        "max_tokens": settings.OPENAI_MAX_TOKENS,
+    }
+    model_name = (settings.OPENAI_MODEL or "").lower()
+    if "gpt-4o" in model_name or "gpt-4" in model_name:
+        llm_kwargs["response_format"] = {"type": "json_object"}
+
+    # Rebuild only if settings changed (e.g. hot-reload)
+    if _cached_llm is not None and _cached_llm_config == llm_kwargs:
+        return _cached_llm
+
+    _cached_llm = ChatOpenAI(**llm_kwargs)
+    _cached_llm_config = llm_kwargs
+    logger.info(f"ChatOpenAI instance created (model={settings.OPENAI_MODEL})")
+    return _cached_llm
+
 
 def _truncate_preview(value: str | None, limit: int) -> str:
     """Return a single-line, truncated version of the prompt or message."""
@@ -60,18 +88,8 @@ def llm_responder(state: Dict[str, Any], config: Dict[str, Any] = None) -> Dict[
         return state
 
     try:
-        # Initialize LLM (force JSON output when model supports it)
-        llm_kwargs = {
-            "openai_api_key": settings.OPENAI_API_KEY,
-            "model": settings.OPENAI_MODEL,
-            "temperature": settings.OPENAI_TEMPERATURE,
-            "max_tokens": settings.OPENAI_MAX_TOKENS,
-        }
-        model_name = (settings.OPENAI_MODEL or "").lower()
-        if "gpt-4o" in model_name or "gpt-4" in model_name:
-            llm_kwargs["response_format"] = {"type": "json_object"}
-
-        llm = ChatOpenAI(**llm_kwargs)
+        # Get cached LLM instance (avoids ~800ms reinit per call)
+        llm = _get_llm()
 
         # Build messages for LLM with full conversation history
         llm_messages = [SystemMessage(content=system_prompt)]
