@@ -7,10 +7,97 @@ from src.agent.graph.conversation_graph import create_conversation_graph
 from src.agent.graph.state_adapters import create_initial_state, state_to_dict
 from src.infrastructure.logging import get_logger
 from src.infrastructure.config.settings import settings as app_settings
+from src.infrastructure.observability import get_langfuse_handler, get_langfuse_client
+from src.infrastructure.observability.langfuse_integration import flush_langfuse
 
 logger = logging.getLogger(__name__)
 # Use shared conversation logger for visibility
 conv_logger = get_logger().logger
+
+
+def _calculate_pickup_time(appointment_time: str, offset_minutes: int = 60) -> str:
+    """
+    Calculate pickup time based on appointment time.
+
+    By default, pickup is 1 hour (60 minutes) before the appointment.
+
+    Args:
+        appointment_time: Appointment time in HH:MM format
+        offset_minutes: Minutes before appointment for pickup (default 60)
+
+    Returns:
+        Pickup time in HH:MM format
+    """
+    try:
+        # Parse appointment time (handle both HH:MM and H:MM formats)
+        time_parts = appointment_time.replace('.', ':').split(':')
+        hour = int(time_parts[0])
+        minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+        # Calculate pickup time
+        total_minutes = hour * 60 + minute - offset_minutes
+
+        # Handle negative time (would be previous day)
+        if total_minutes < 0:
+            total_minutes = 0
+            logger.warning(f"Pickup time would be negative, setting to 00:00")
+
+        pickup_hour = total_minutes // 60
+        pickup_minute = total_minutes % 60
+
+        return f"{pickup_hour:02d}:{pickup_minute:02d}"
+
+    except Exception as e:
+        logger.error(f"Error calculating pickup time from '{appointment_time}': {e}")
+        return appointment_time  # Return original if error
+
+def _record_langfuse_scores(handler, prev_phase: str, result: Dict[str, Any]):
+    """Record custom scores in Langfuse after each conversation turn."""
+    if not handler:
+        return
+    try:
+        client = get_langfuse_client()
+        if not client:
+            return
+
+        if not hasattr(handler, "get_trace_id"):
+            return
+        trace_id = handler.get_trace_id()
+        if not trace_id:
+            return
+
+        # Score: escalation triggered
+        client.score(
+            trace_id=trace_id,
+            name="escalation_triggered",
+            value=1 if result.get("escalation_required") else 0,
+        )
+
+        # Score: phase transition occurred
+        next_phase = result.get("next_phase") or result.get("current_phase")
+        phase_changed = next_phase != prev_phase
+        client.score(
+            trace_id=trace_id,
+            name="phase_transition",
+            value=1 if phase_changed else 0,
+            comment=f"{prev_phase} -> {next_phase}" if phase_changed else "no change",
+        )
+
+        # Score: data extraction count
+        extracted = result.get("extracted_data", {})
+        if isinstance(extracted, dict):
+            extracted_count = len([v for v in extracted.values() if v])
+        else:
+            extracted_count = 0
+        client.score(
+            trace_id=trace_id,
+            name="data_extraction_count",
+            value=extracted_count,
+        )
+
+    except Exception as e:
+        logger.warning(f"Failed to record Langfuse scores: {e}")
+
 
 class LangGraphOrchestrator:
     """
@@ -82,9 +169,33 @@ class LangGraphOrchestrator:
 
         prev_phase = state.get("current_phase")
         prev_turn = state.get("turn_count", 0)
-        
+
+        # Build Langfuse handler for observability
+        langfuse_tags = [
+            call_direction.lower(),
+            f"phase:{state.get('current_phase', 'GREETING')}",
+        ]
+        service_type = state.get("service_type")
+        if service_type:
+            langfuse_tags.append(f"service:{service_type}")
+
+        langfuse_handler = get_langfuse_handler(
+            session_id=session_id,
+            user_id=state.get("patient_phone", "unknown"),
+            tags=langfuse_tags,
+            metadata={
+                "agent_name": agent_name,
+                "turn_count": state.get("turn_count", 0),
+                "call_direction": call_direction,
+                "patient_full_name": state.get("patient_full_name", ""),
+                "service_type": service_type or "",
+            },
+            trace_name="conversation_turn",
+        )
+        invoke_config = {"callbacks": [langfuse_handler]} if langfuse_handler else {}
+
         # Run graph
-        result = self.graph.invoke(state)
+        result = self.graph.invoke(state, config=invoke_config)
 
         # Debug log for phase/turn changes
         try:
@@ -124,7 +235,12 @@ class LangGraphOrchestrator:
         
         # Update session
         self._sessions[session_id] = result
-        
+
+        # Langfuse scoring
+        _record_langfuse_scores(
+            langfuse_handler, prev_phase, result
+        )
+
         # Return response in compatible format
         return {
             'agent_response': agent_response,
@@ -184,6 +300,11 @@ class LangGraphOrchestrator:
                     state["pickup_address"] = patient_data.direccion_completa
                     # Track excel row to update status later
                     state["excel_row_index"] = patient_data.row_index
+                    # Calculate pickup_time (1 hour before appointment)
+                    if patient_data.hora_servicio:
+                        pickup_time = _calculate_pickup_time(patient_data.hora_servicio)
+                        state["pickup_time"] = pickup_time
+                        logger.info(f"Calculated pickup_time: {pickup_time} (appointment: {patient_data.hora_servicio})")
             except Exception as e:
                 logger.warning(f"Could not preload outbound data from Excel: {e}")
 
@@ -394,6 +515,7 @@ class LangGraphOrchestrator:
             logger.info(f"[ORCHESTRATOR] Mensaje procesado exitosamente")
         except Exception as e:
             logger.error(f"[ORCHESTRATOR] ERROR en process_message: {e}", exc_info=True)
+            flush_langfuse()
             raise
 
         # Save updated state to Redis if store is available
@@ -422,5 +544,8 @@ class LangGraphOrchestrator:
         response["call_direction"] = "OUTBOUND" if is_outbound else "INBOUND"
         response["requires_escalation"] = response.get("escalation_required", False)
         response["metadata"] = {}
+
+        # Flush Langfuse events before returning response
+        flush_langfuse()
 
         return response

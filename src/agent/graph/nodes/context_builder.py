@@ -61,6 +61,7 @@ def context_builder(state: Dict[str, Any]) -> Dict[str, Any]:
         "service_type": contexto_excel.get("service_type") or state.get("service_type"),
         "appointment_date": contexto_excel.get("appointment_date_full") or state.get("appointment_date"),
         "appointment_time": contexto_excel.get("appointment_time") or state.get("appointment_time"),
+        "pickup_time": contexto_excel.get("pickup_time") or state.get("pickup_time"),
         "pickup_address": contexto_excel.get("pickup_address") or state.get("pickup_address"),
         "contact_name": state.get("contact_name"),
         "contact_relationship": state.get("contact_relationship"),

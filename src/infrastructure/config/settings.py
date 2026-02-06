@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     EXCEL_PATH: Optional[str] = None  # Path to Excel/CSV file for outbound calls
     EXCEL_BACKUP_FOLDER: Optional[str] = None  # Path to backup folder
 
+    # Langfuse Observability
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_SECRET_KEY: str = ""
+    LANGFUSE_HOST: str = "http://localhost:3000"
+    LANGFUSE_ENABLED: bool = True
+
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"

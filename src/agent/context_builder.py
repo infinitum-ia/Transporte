@@ -94,15 +94,59 @@ class ContextBuilderAgent:
             contexto['appointment_date_full'] = self._format_date(appointment_date)
             contexto['appointment_date_raw'] = appointment_date
 
-        # Hora
+        # Hora de la cita
         if state.get('appointment_time'):
             contexto['appointment_time'] = state['appointment_time']
+
+        # Hora de recogida - calcular si no existe
+        pickup_time = state.get('pickup_time')
+        if not pickup_time and state.get('appointment_time'):
+            pickup_time = self._calculate_pickup_time(state['appointment_time'])
+        if pickup_time:
+            contexto['pickup_time'] = pickup_time
 
         # Dirección
         if state.get('pickup_address'):
             contexto['pickup_address'] = state['pickup_address']
 
         return contexto
+
+    def _calculate_pickup_time(self, appointment_time: str, adjustment_minutes: int = 0) -> str:
+        """
+        Calcula la hora de recogida basada en la hora de la cita.
+
+        La hora de recogida es 1 hora antes de la cita por defecto.
+        Se puede ajustar con minutos adicionales (negativo = más temprano).
+
+        Args:
+            appointment_time: Hora de la cita en formato HH:MM
+            adjustment_minutes: Minutos de ajuste (negativo = antes, positivo = después)
+
+        Returns:
+            Hora de recogida en formato HH:MM
+        """
+        try:
+            # Parsear hora de la cita
+            time_parts = appointment_time.replace('.', ':').split(':')
+            hour = int(time_parts[0])
+            minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+            # Calcular hora de recogida (1 hora antes por defecto)
+            total_minutes = hour * 60 + minute - 60 + adjustment_minutes
+
+            # Asegurar que no sea negativo (pasaría a día anterior)
+            if total_minutes < 0:
+                total_minutes = 0
+                logger.warning(f"Hora de recogida ajustada a 00:00 (original resultaba negativa)")
+
+            pickup_hour = total_minutes // 60
+            pickup_minute = total_minutes % 60
+
+            return f"{pickup_hour:02d}:{pickup_minute:02d}"
+
+        except Exception as e:
+            logger.warning(f"Error calculando hora de recogida para '{appointment_time}': {e}")
+            return appointment_time  # Devolver hora original si hay error
 
     def _format_date(self, date_str: str) -> str:
         """

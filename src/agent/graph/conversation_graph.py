@@ -1,4 +1,4 @@
-# Conversation graph using LangGraph StateGraph - Con Supervisor Robusto
+# Conversation graph using LangGraph StateGraph - Optimizado (1 sola llamada LLM)
 from langgraph.graph import StateGraph, END
 from src.agent.graph.state import ConversationState
 from src.agent.graph.nodes import (
@@ -12,8 +12,8 @@ from src.agent.graph.nodes import (
     state_updater,
     special_case_handler,
     excel_writer,
-    # Nuevos nodos del Supervisor Robusto
-    pre_analyzer_node,
+    # Supervisor Robusto - Optimizado
+    pre_analyzer_node,  # Ahora usa simple_analyzer (basado en reglas, sin LLM)
     context_enricher_node,
     response_validator_node,
 )
@@ -24,31 +24,34 @@ def create_conversation_graph():
     """
     Create the LangGraph StateGraph for conversation management.
 
-    ARQUITECTURA SUPERVISOR ROBUSTO:
+    ARQUITECTURA OPTIMIZADA (1 LLM call):
 
     Graph Flow (per turn):
     START -> input_processor
-          -> pre_analyzer (detecta emoción/intención)
+          -> pre_analyzer (análisis basado en REGLAS, ~5ms - antes era LLM ~2000ms)
           -> context_enricher (inyecta políticas/casos)
           -> policy_engine -> eligibility_checker -> escalation_detector
           -> [conditional: escalate?]
               -> YES: special_case_handler -> END
-              -> NO: context_builder -> llm_responder
-                  -> response_validator (corrige errores)
+              -> NO: context_builder -> llm_responder (ÚNICA llamada LLM)
+                  -> response_validator (validación por reglas)
                   -> response_processor
                   -> [conditional: route_after_llm]
                       -> END: excel_writer -> END
                       -> special: special_case_handler -> END
                       -> continue: state_updater -> END
+
+    OPTIMIZACIÓN: Antes había 2 llamadas LLM (pre_analyzer + llm_responder).
+    Ahora pre_analyzer usa regex/reglas, reduciendo latencia de ~6s a ~3s.
     """
 
     # Create graph
     graph = StateGraph(ConversationState)
     print("===============COMPILANDO GRAFO============")
-    # Add all nodes (incluyendo Supervisor Robusto)
+    # Add all nodes (Supervisor Robusto - Optimizado)
     graph.add_node("input_processor", input_processor)
-    graph.add_node("pre_analyzer", pre_analyzer_node)  # NUEVO
-    graph.add_node("context_enricher", context_enricher_node)  # NUEVO
+    graph.add_node("pre_analyzer", pre_analyzer_node)  # OPTIMIZADO: Ahora usa reglas, no LLM (~5ms vs ~2000ms)
+    graph.add_node("context_enricher", context_enricher_node)
     graph.add_node("policy_engine", policy_engine_node)
     graph.add_node("eligibility_checker", eligibility_checker)
     graph.add_node("escalation_detector", escalation_detector)

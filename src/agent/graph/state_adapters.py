@@ -155,6 +155,8 @@ def create_initial_state(
         "appointment_dates": [],
         "appointment_date": None,
         "appointment_time": None,
+        "pickup_time": None,
+        "pickup_time_adjustment": None,
         "pickup_address": None,
         "frequency": None,
         "route_type": None,

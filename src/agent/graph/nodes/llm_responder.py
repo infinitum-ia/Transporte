@@ -22,7 +22,7 @@ def _truncate_preview(value: str | None, limit: int) -> str:
     return f"{cleaned[:limit-3]}..."
 
 
-def llm_responder(state: Dict[str, Any]) -> Dict[str, Any]:
+def llm_responder(state: Dict[str, Any], config: Dict[str, Any] = None) -> Dict[str, Any]:
     """Call LLM to generate response using optimized prompt"""
 
     print(f"\n{'━'*80}")
@@ -140,8 +140,13 @@ def llm_responder(state: Dict[str, Any]) -> Dict[str, Any]:
 
         print(f"⏳ Esperando respuesta del LLM...")
 
-        print("==========LO QUE SE MANDA==========================",llm_messages)
-        response = llm.invoke(llm_messages)
+        # Propagate Langfuse callbacks from LangGraph config
+        llm_invoke_kwargs = {}
+        if config and config.get("callbacks"):
+            llm_invoke_kwargs["config"] = {"callbacks": config["callbacks"]}
+
+        #print("==========LO QUE SE MANDA==========================",llm_messages)
+        response = llm.invoke(llm_messages, **llm_invoke_kwargs)
         llm_output = response.content
         print("=======================LO QUE DEVUELVE=======================", llm_output)
         state["_llm_raw_output"] = llm_output
@@ -155,75 +160,15 @@ def llm_responder(state: Dict[str, Any]) -> Dict[str, Any]:
             state["requires_escalation"] = parsed.get("requires_escalation", False)
             state["extracted_data"] = parsed.get("extracted", {})
 
-            # NEW: Validate response with rules (no LLM cost)
-            validation_attempts = state.get("validation_attempt_count", 0)
+            # Validate response with rules (log-only, no retry)
             validation_result = _validate_response_rules(state["agent_response"], state)
 
-            if validation_result['has_critical_error'] and validation_attempts < 2:
-                # Critical error detected, regenerate ONCE
-                print(f"⚠️  [VALIDACIÓN] Error detectado: {validation_result['error']}")
-                print(f"   🔄 Regenerando respuesta (intento {validation_attempts + 1}/2)...")
-
-                state["validation_attempt_count"] = validation_attempts + 1
-
-                # Add correction to prompt
-                correction_prompt = f"""
-╔═══════════════════════════════════════════════════════════════╗
-║ CORRECCIÓN DE VALIDACIÓN                                      ║
-╚═══════════════════════════════════════════════════════════════╝
-
-Tu respuesta anterior tenía un ERROR CRÍTICO:
-{validation_result['error']}
-
-CORRIGE este problema y genera una nueva respuesta.
-"""
-                # Rebuild messages with correction and full history
-                corrected_system_prompt = system_prompt + correction_prompt
-                llm_messages_corrected = [SystemMessage(content=corrected_system_prompt)]
-
-                # Add full conversation history
-                for msg in messages:
-                    if isinstance(msg, dict):
-                        role = msg.get("role")
-                        content = msg.get("content", "")
-                        if role == "user":
-                            llm_messages_corrected.append(HumanMessage(content=content))
-                        elif role == "assistant":
-                            from langchain_core.messages import AIMessage
-                            llm_messages_corrected.append(AIMessage(content=content))
-                    elif hasattr(msg, "type"):
-                        llm_messages_corrected.append(msg)
-
-                # Regenerate
-                print(f"⏳ Regenerando con corrección...")
-                response = llm.invoke(llm_messages_corrected)
-                llm_output = response.content
-                state["_llm_raw_output"] = llm_output
-
-                # Re-parse
-                try:
-                    parsed = json.loads(llm_output)
-                    state["agent_response"] = parsed.get("agent_response", "")
-                    state["next_phase"] = parsed.get("next_phase", state.get("current_phase"))
-                    state["requires_escalation"] = parsed.get("requires_escalation", False)
-                    state["extracted_data"] = parsed.get("extracted", {})
-
-                    # Validate again (but don't loop again)
-                    validation_result2 = _validate_response_rules(state["agent_response"], state)
-                    if validation_result2['has_critical_error']:
-                        print(f"⚠️  Aún tiene errores, pero se alcanzó límite de intentos")
-                    else:
-                        print(f"✅ Respuesta corregida exitosamente")
-                except json.JSONDecodeError:
-                    pass  # Use as-is if parsing fails
-
-            elif validation_result['has_critical_error']:
-                # Reached max attempts, log but continue
-                print(f"⚠️  [VALIDACIÓN] Error detectado pero límite alcanzado (2/2 intentos)")
-                logger.warning(f"Validation errors (max attempts): {validation_result['errors']}")
-
+            if validation_result['has_critical_error']:
+                logger.warning(f"Validation issues (log-only): {validation_result['errors']}")
+                print(f"⚠️  [VALIDACIÓN] Problemas detectados (solo log, sin retry):")
+                for err in validation_result['errors']:
+                    print(f"   → {err}")
             else:
-                # No errors, validation passed
                 print(f"✅ [VALIDACIÓN] Respuesta aprobada")
 
             print(f"✅ [NODO 2/3] LLM completado exitosamente")

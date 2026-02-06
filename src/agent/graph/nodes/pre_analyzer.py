@@ -50,7 +50,7 @@ class PreAnalyzer:
             api_key=os.getenv("OPENAI_API_KEY")
         )
 
-    def analyze(self, message: str, phase: str, patient_name: str = "") -> Dict[str, Any]:
+    def analyze(self, message: str, phase: str, patient_name: str = "", callbacks=None) -> Dict[str, Any]:
         """
         Analiza mensaje del usuario.
 
@@ -58,6 +58,7 @@ class PreAnalyzer:
             message: Mensaje del usuario
             phase: Fase actual de la conversación
             patient_name: Nombre del paciente (si se conoce)
+            callbacks: LangChain callbacks for observability (e.g. Langfuse)
 
         Returns:
             Dict con análisis: emotion, intent, topic, etc.
@@ -69,7 +70,10 @@ class PreAnalyzer:
         )
 
         try:
-            response = self.llm.invoke(prompt)
+            invoke_kwargs = {}
+            if callbacks:
+                invoke_kwargs["config"] = {"callbacks": callbacks}
+            response = self.llm.invoke(prompt, **invoke_kwargs)
             content = response.content.strip()
             print("Respuesta del analizador ", content)
 
@@ -114,7 +118,7 @@ def get_pre_analyzer() -> PreAnalyzer:
     return _analyzer_instance
 
 
-def pre_analyzer_node(state: Dict[str, Any]) -> Dict[str, Any]:
+def pre_analyzer_node(state: Dict[str, Any], config: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Nodo de LangGraph para pre-análisis.
 
@@ -142,12 +146,16 @@ def pre_analyzer_node(state: Dict[str, Any]) -> Dict[str, Any]:
     if not last_message:
         return state
 
+    # Extract callbacks from LangGraph config for observability
+    callbacks = config.get("callbacks") if config else None
+
     # Analizar
     analyzer = get_pre_analyzer()
     analysis = analyzer.analyze(
         message=last_message,
         phase=state.get("current_phase", "GREETING"),
-        patient_name=state.get("patient_full_name", "")
+        patient_name=state.get("patient_full_name", ""),
+        callbacks=callbacks,
     )
 
     # Agregar al state

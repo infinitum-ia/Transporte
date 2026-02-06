@@ -86,6 +86,9 @@ def build_prompt(
         service_date = known_data.get("appointment_date") or ""
         service_time = known_data.get("appointment_time") or ""
 
+        # Obtener hora de recogida (calculada o del state)
+        pickup_time = known_data.get("pickup_time") or ""
+
         try:
             formatted = phase_instruction.format(
                 agent_name=agent_name,
@@ -95,6 +98,7 @@ def build_prompt(
                 service_type=service_type,
                 service_date=service_date,
                 service_time=service_time,
+                pickup_time=pickup_time,
                 contact_name=known_data.get("contact_name") or "",
                 contact_relationship=known_data.get("contact_relationship") or "",
                 pickup_address=known_data.get("pickup_address") or "",
@@ -165,26 +169,26 @@ def _format_known_data_for_phase(known_data: Dict[str, Any], phase: Conversation
 
     phase_relevant = {
         ConversationPhase.OUTBOUND_GREETING: [
-            "patient_full_name", "service_type", "appointment_date", "appointment_time"
+            "patient_full_name", "service_type", "appointment_date", "appointment_time", "pickup_time"
         ],
         ConversationPhase.OUTBOUND_SERVICE_CONFIRMATION: [
             "patient_full_name", "service_type", "appointment_date",
-            "appointment_time", "pickup_address", "contact_name"
+            "appointment_time", "pickup_time", "pickup_address", "contact_name"
         ],
         ConversationPhase.OUTBOUND_SPECIAL_CASES: [
             "patient_full_name", "service_type", "appointment_date",
-            "appointment_time", "contact_name"
+            "appointment_time", "pickup_time", "contact_name"
         ],
         ConversationPhase.OUTBOUND_CLOSING: [
             "patient_full_name", "service_type", "appointment_date",
-            "appointment_time", "contact_name"
+            "appointment_time", "pickup_time", "contact_name"
         ],
         ConversationPhase.IDENTIFICATION: [
             "patient_full_name", "document_type", "document_number", "eps"
         ],
         ConversationPhase.SERVICE_COORDINATION: [
             "patient_full_name", "service_type", "appointment_date",
-            "appointment_time", "pickup_address"
+            "appointment_time", "pickup_time", "pickup_address"
         ],
     }
 

@@ -1,10 +1,50 @@
 # Response processor node - extract data from LLM response
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from src.infrastructure.logging import get_logger
 
 logger = logging.getLogger(__name__)
 conv_logger = get_logger().logger
+
+
+def _calculate_adjusted_time(base_time: str, adjustment_minutes: int) -> Optional[str]:
+    """
+    Calculate adjusted time based on base time and adjustment in minutes.
+
+    Args:
+        base_time: Base time in HH:MM format
+        adjustment_minutes: Minutes to adjust (negative = earlier, positive = later)
+
+    Returns:
+        Adjusted time in HH:MM format, or None if calculation fails
+    """
+    try:
+        # Parse base time
+        time_parts = base_time.replace('.', ':').split(':')
+        hour = int(time_parts[0])
+        minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+
+        # Calculate total minutes and apply adjustment
+        total_minutes = hour * 60 + minute + adjustment_minutes
+
+        # Handle negative (would be previous day) - clamp to 00:00
+        if total_minutes < 0:
+            total_minutes = 0
+            logger.warning(f"Adjusted time would be negative, clamping to 00:00")
+
+        # Handle overflow (would be next day) - clamp to 23:59
+        if total_minutes >= 24 * 60:
+            total_minutes = 24 * 60 - 1
+            logger.warning(f"Adjusted time would overflow, clamping to 23:59")
+
+        new_hour = total_minutes // 60
+        new_minute = total_minutes % 60
+
+        return f"{new_hour:02d}:{new_minute:02d}"
+
+    except Exception as e:
+        logger.error(f"Error calculating adjusted time: {e}")
+        return None
 
 
 def response_processor(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -72,6 +112,42 @@ def response_processor(state: Dict[str, Any]) -> Dict[str, Any]:
 
     if extracted.get("pickup_address"):
         state["pickup_address"] = extracted["pickup_address"]
+
+    # Pickup time adjustment (for schedule changes)
+    if extracted.get("pickup_time_adjustment") is not None:
+        try:
+            adjustment = int(extracted["pickup_time_adjustment"])
+            state["pickup_time_adjustment"] = adjustment
+            logger.info(f"Pickup time adjustment extracted: {adjustment} minutes")
+            print(f"✅ Dato extraído: pickup_time_adjustment = {adjustment} minutos")
+
+            # Calculate new pickup time if we have the base pickup_time
+            if state.get("pickup_time") and not extracted.get("new_pickup_time"):
+                new_pickup = _calculate_adjusted_time(state["pickup_time"], adjustment)
+                if new_pickup:
+                    state["pickup_time"] = new_pickup
+                    logger.info(f"New pickup time calculated: {new_pickup}")
+                    print(f"✅ Nueva hora de recogida calculada: {new_pickup}")
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid pickup_time_adjustment value: {extracted['pickup_time_adjustment']}")
+
+    if extracted.get("new_pickup_time"):
+        state["pickup_time"] = extracted["new_pickup_time"]
+        logger.info(f"New pickup time extracted: {extracted['new_pickup_time']}")
+        print(f"✅ Dato extraído: new_pickup_time = '{extracted['new_pickup_time']}'")
+
+    # New appointment date/time (for rescheduling)
+    if extracted.get("new_appointment_date"):
+        state["new_appointment_date"] = extracted["new_appointment_date"]
+        state["date_change_detected"] = True
+        logger.info(f"New appointment date extracted: {extracted['new_appointment_date']}")
+        print(f"✅ Dato extraído: new_appointment_date = '{extracted['new_appointment_date']}'")
+
+    if extracted.get("new_appointment_time"):
+        state["new_appointment_time"] = extracted["new_appointment_time"]
+        state["date_change_detected"] = True
+        logger.info(f"New appointment time extracted: {extracted['new_appointment_time']}")
+        print(f"✅ Dato extraído: new_appointment_time = '{extracted['new_appointment_time']}'")
 
     # Incidents
     if extracted.get("incident_summary"):
